@@ -96,6 +96,9 @@ export async function generateInvoice(
     .limit(1);
   if (existing) return { status: "exists", invoice: existing };
 
+  if (getLocalParts(restaurant.createdAt, "Europe/Zurich").date > period.end) {
+    return { status: "skipped", reason: "Restaurant was created after this period" };
+  }
   if (restaurant.billingStartsOn && restaurant.billingStartsOn > period.end) {
     return { status: "skipped", reason: "Billing starts after this period" };
   }

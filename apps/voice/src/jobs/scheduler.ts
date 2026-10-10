@@ -26,7 +26,12 @@ export async function runOnce<T>(
   const [claimed] = await db
     .insert(jobRuns)
     .values({ job, runKey })
-    .onConflictDoNothing()
+    // A previously failed run of the same key may be retried.
+    .onConflictDoUpdate({
+      target: [jobRuns.job, jobRuns.runKey],
+      set: { status: "running", startedAt: new Date(), finishedAt: null, result: null },
+      setWhere: sql`${jobRuns.status} = 'failed'`,
+    })
     .returning();
   if (!claimed) return null;
   try {

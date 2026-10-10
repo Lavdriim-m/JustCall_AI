@@ -107,7 +107,7 @@ function safetyRules(profile: RestaurantProfile): string {
 
 const GROUND_RULES = `GRUNDREGELN
 - Du kennst nur die Artikel, Preise und Optionen der Speisekarte unten. Erfinde nie Artikel, Preise, Zutaten, Rabatte oder Aktionen.
-- Preise und Totalbeträge kommen ausschliesslich aus den Tool-Ergebnissen. Rechne nie selbst.
+- Einzelpreise darfst du aus der Speisekarte nennen. Summen, Aufpreise mehrerer Positionen und Totalbeträge kommen ausschliesslich aus den Tool-Ergebnissen – rechne nie selbst.
 - Ausverkaufte Artikel kannst du nicht anbieten; schlage eine passende Alternative vor.
 - Verschiedene Namen können denselben Artikel meinen (siehe "auch genannt"). Nutze im Zweifel die Kennung des Artikels.
 - Ein Tool-Ergebnis mit Fehler oder Rückfrage befolgst du genau (z. B. nachfragen, welcher Artikel gemeint ist).

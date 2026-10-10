@@ -38,7 +38,8 @@ async function main() {
     .values({
       slug: SLUG,
       name: r.name,
-      status: "active",
+      // Draft: usable in the simulator, never answers real calls and is never invoiced.
+      status: "draft",
       legalName: "Bella Vista Gastro GmbH",
       street: r.street,
       postalCode: r.postalCode,
