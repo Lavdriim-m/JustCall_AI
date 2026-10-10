@@ -27,7 +27,7 @@ export default async function PortalLayout({
             <Logo withText={false} />
             <span className="font-semibold">{access.restaurant.name}</span>
           </Link>
-          <nav className="flex flex-1 flex-wrap gap-1">
+          <nav className="order-last -mx-1 flex w-full gap-1 overflow-x-auto pb-0.5 md:order-none md:mx-0 md:w-auto md:flex-1 md:flex-wrap md:overflow-visible">
             <NavLink href={`${base}/orders`}>
               <ClipboardList /> Bestellungen
             </NavLink>
@@ -46,7 +46,7 @@ export default async function PortalLayout({
               <Settings /> Einstellungen
             </NavLink>
           </nav>
-          <div className="flex items-center gap-2 text-sm">
+          <div className="ml-auto flex items-center gap-2 text-sm md:ml-0">
             {access.role === "admin" ? (
               <Link
                 href={`/admin/restaurants/${access.restaurant.id}`}

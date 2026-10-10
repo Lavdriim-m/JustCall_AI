@@ -193,7 +193,7 @@ export function OrdersBoard({
           />
           {accepting ? "Telefon-Assistent aktiv" : "Assistent pausiert"}
         </button>
-        <div className="flex items-center gap-1.5 text-sm">
+        <div className="flex flex-wrap items-center gap-1.5 text-sm">
           <Clock className="size-4 text-muted" />
           <span className="text-muted">Wartezeit:</span>
           {[0, 10, 20, 30, 45].map((m) => (
@@ -242,7 +242,7 @@ export function OrdersBoard({
             <section
               key={col.status}
               className={cn(
-                "min-h-[300px] rounded-xl border border-t-4 border-default bg-[var(--surface-muted)]/60 p-3",
+                "min-h-[120px] rounded-xl border border-t-4 lg:min-h-[300px] border-default bg-[var(--surface-muted)]/60 p-3",
                 col.tone,
               )}
             >

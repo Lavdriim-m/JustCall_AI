@@ -21,7 +21,7 @@ export function NavLink({
     <Link
       href={href}
       className={cn(
-        "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors [&_svg]:size-4",
+        "flex shrink-0 items-center gap-2.5 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition-colors [&_svg]:size-4",
         active
           ? "bg-brand-50 text-brand-800 dark:bg-brand-950 dark:text-brand-200"
           : "text-muted hover:bg-[var(--surface-muted)] hover:text-[var(--text)]",

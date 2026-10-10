@@ -36,6 +36,22 @@ export default async function PortalInvoicesPage({
       <Card>
         <InvoicesTable rows={rows} showRestaurant={false} linkBase={null} />
       </Card>
+      {rows.length ? (
+        <p className="text-sm text-muted">
+          Bestellungen einer Abrechnungsperiode als Excel/CSV:{" "}
+          {rows.slice(0, 6).map((r, i) => (
+            <span key={r.id}>
+              {i ? " · " : ""}
+              <a
+                className="text-brand-700 underline dark:text-brand-300"
+                href={`/api/orders/export?restaurant=${access.restaurant.id}&from=${r.periodStart}&to=${r.periodEnd}`}
+              >
+                {r.periodStart.slice(0, 7)}
+              </a>
+            </span>
+          ))}
+        </p>
+      ) : null}
     </div>
   );
 }

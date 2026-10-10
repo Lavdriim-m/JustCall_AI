@@ -1,6 +1,8 @@
 import { formatChf } from "@justcall/core";
 import { and, desc, eq, gte, lte, orders, restaurants, sql, type SQL } from "@justcall/db";
+import { Download } from "lucide-react";
 import { Filters, Pagination } from "@/components/filters";
+import { Button } from "@/components/ui/button";
 import { OrdersTable } from "@/components/tables";
 import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/misc";
@@ -71,6 +73,15 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
       <PageHeader
         title="Orders"
         description={`${totals?.n ?? 0} orders · ${formatChf(totals?.volume ?? 0)} for the current filter`}
+        actions={
+          <Button asChild variant="secondary">
+            <a
+              href={`/api/orders/export?${new URLSearchParams(Object.entries({ restaurant: sp.restaurant, from: sp.from, to: sp.to, tests: sp.tests }).filter(([, v]) => v) as [string, string][]).toString()}`}
+            >
+              <Download /> Export CSV
+            </a>
+          </Button>
+        }
       />
       <Card>
         <Filters
