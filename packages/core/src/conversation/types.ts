@@ -5,7 +5,8 @@ import type { MenuSnapshot } from "../menu/types";
 export type PaymentMethod = "cash" | "card" | "twint";
 export type SpeechStyle = "swiss_standard" | "swiss_dialect";
 export type FulfillmentType = "pickup" | "delivery";
-export type TransferReason = "allergy" | "owner_request" | "complaint" | "large_order" | "technical" | "other";
+export type TransferReason =
+  "allergy" | "owner_request" | "complaint" | "large_order" | "technical" | "other";
 
 /** Everything the conversation engine needs to know about a restaurant. */
 export type RestaurantProfile = {

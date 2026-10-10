@@ -31,7 +31,9 @@ const CONTEXT_PATTERNS: RegExp[] = [
   new RegExp(`\\b${INGREDIENTS}\\s?(frei|freie|freien|freis|freii)\\b`), // glutenfrei, laktose frei
   new RegExp(`\\b(ohne|ohni|kei|keine|keini|ohn)\\s+(\\w+\\s+)?${INGREDIENTS}\\b`), // ohne Nüsse, ohni Gluten
   new RegExp(`\\b${INGREDIENTS}\\b.*\\b(drin|drinn|dinne|enthalten|enthalt|dabei|druf|drauf)\\b`), // "het's Nüss drin?"
-  new RegExp(`\\b${INGREDIENTS}\\b.*\\b(problem\\w*|schlimm|gfahrlich|gefahrlich|reagier\\w*|vertrag\\w*|vertreit)\\b`), // "Laktose isch es Problem"
+  new RegExp(
+    `\\b${INGREDIENTS}\\b.*\\b(problem\\w*|schlimm|gfahrlich|gefahrlich|reagier\\w*|vertrag\\w*|vertreit)\\b`,
+  ), // "Laktose isch es Problem"
 ];
 
 /** Negated allergy statements that are a valid "no" to the allergy question. */

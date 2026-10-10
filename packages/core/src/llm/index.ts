@@ -32,14 +32,18 @@ export function createLlmClient(config: LlmConfig = {}): LlmClient {
     case "anthropic": {
       const apiKey = env.ANTHROPIC_API_KEY;
       if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not set");
-      return new AnthropicLlm({ apiKey, model: config.model || env.ANTHROPIC_MODEL || DEFAULT_MODELS.anthropic });
+      return new AnthropicLlm({
+        apiKey,
+        model: config.model || env.ANTHROPIC_MODEL || DEFAULT_MODELS.anthropic,
+      });
     }
     case "demo":
       return new DemoLlm();
     case "openai":
     default: {
       const apiKey = env.OPENAI_API_KEY;
-      if (!apiKey || apiKey.length < 20) throw new Error("OPENAI_API_KEY is not set (or is a placeholder)");
+      if (!apiKey || apiKey.length < 20)
+        throw new Error("OPENAI_API_KEY is not set (or is a placeholder)");
       return new OpenAiLlm({
         apiKey,
         model: config.model || env.OPENAI_MODEL || DEFAULT_MODELS.openai,

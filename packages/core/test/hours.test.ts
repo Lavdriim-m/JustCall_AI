@@ -14,8 +14,12 @@ const { openingHours, hoursExceptions } = demoRestaurant;
 
 describe("time zone helpers", () => {
   it("converts local time to UTC across DST", () => {
-    expect(zonedTimeToUtc("2026-07-01", "12:00", tz).toISOString()).toBe("2026-07-01T10:00:00.000Z");
-    expect(zonedTimeToUtc("2026-01-15", "12:00", tz).toISOString()).toBe("2026-01-15T11:00:00.000Z");
+    expect(zonedTimeToUtc("2026-07-01", "12:00", tz).toISOString()).toBe(
+      "2026-07-01T10:00:00.000Z",
+    );
+    expect(zonedTimeToUtc("2026-01-15", "12:00", tz).toISOString()).toBe(
+      "2026-01-15T11:00:00.000Z",
+    );
   });
   it("reads local parts", () => {
     const p = getLocalParts(new Date("2026-10-10T16:42:00Z"), tz);
@@ -26,19 +30,36 @@ describe("time zone helpers", () => {
 describe("opening hours", () => {
   it("is open during a range and closed between ranges", () => {
     // Wednesday 2026-10-07
-    expect(getOpenState(zonedTimeToUtc("2026-10-07", "12:00", tz), openingHours, hoursExceptions, tz).isOpen).toBe(true);
-    const between = getOpenState(zonedTimeToUtc("2026-10-07", "15:30", tz), openingHours, hoursExceptions, tz);
+    expect(
+      getOpenState(zonedTimeToUtc("2026-10-07", "12:00", tz), openingHours, hoursExceptions, tz)
+        .isOpen,
+    ).toBe(true);
+    const between = getOpenState(
+      zonedTimeToUtc("2026-10-07", "15:30", tz),
+      openingHours,
+      hoursExceptions,
+      tz,
+    );
     expect(between.isOpen).toBe(false);
     expect(formatLocalTime(between.next!.start, tz)).toBe("17:00");
   });
   it("handles ranges past midnight", () => {
     // Saturday 01:30 belongs to Friday's 17:00–02:00 range
-    expect(getOpenState(zonedTimeToUtc("2026-10-10", "01:30", tz), openingHours, hoursExceptions, tz).isOpen).toBe(true);
-    expect(getOpenState(zonedTimeToUtc("2026-10-10", "02:30", tz), openingHours, hoursExceptions, tz).isOpen).toBe(false);
+    expect(
+      getOpenState(zonedTimeToUtc("2026-10-10", "01:30", tz), openingHours, hoursExceptions, tz)
+        .isOpen,
+    ).toBe(true);
+    expect(
+      getOpenState(zonedTimeToUtc("2026-10-10", "02:30", tz), openingHours, hoursExceptions, tz)
+        .isOpen,
+    ).toBe(false);
   });
   it("applies exceptions (holidays)", () => {
     // 2026-12-25 is a Friday but closed
-    expect(getOpenState(zonedTimeToUtc("2026-12-25", "19:00", tz), openingHours, hoursExceptions, tz).isOpen).toBe(false);
+    expect(
+      getOpenState(zonedTimeToUtc("2026-12-25", "19:00", tz), openingHours, hoursExceptions, tz)
+        .isOpen,
+    ).toBe(false);
   });
   it("treats an empty schedule as always open", () => {
     expect(getOpenState(new Date(), {}, [], tz).isOpen).toBe(true);
@@ -50,8 +71,12 @@ describe("opening hours", () => {
   });
   it("resolves requested times to today or after midnight", () => {
     const now = zonedTimeToUtc("2026-10-10", "23:00", tz);
-    expect(resolveRequestedTime("23:30", now, tz)!.toISOString()).toBe(zonedTimeToUtc("2026-10-10", "23:30", tz).toISOString());
-    expect(resolveRequestedTime("00:30", now, tz)!.toISOString()).toBe(zonedTimeToUtc("2026-10-11", "00:30", tz).toISOString());
+    expect(resolveRequestedTime("23:30", now, tz)!.toISOString()).toBe(
+      zonedTimeToUtc("2026-10-10", "23:30", tz).toISOString(),
+    );
+    expect(resolveRequestedTime("00:30", now, tz)!.toISOString()).toBe(
+      zonedTimeToUtc("2026-10-11", "00:30", tz).toISOString(),
+    );
     expect(resolveRequestedTime("abc", now, tz)).toBeNull();
   });
 });

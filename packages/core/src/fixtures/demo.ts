@@ -100,8 +100,13 @@ export const demoMenu: MenuSnapshot = {
       maxSelect: 1,
       sortOrder: 1,
       options: [
-        opt("opt-size-normal", "Normal", 0, ["klein", "normal", "32 cm"], { isDefault: true, sortOrder: 1 }),
-        opt("opt-size-gross", "Gross", 500, ["gross", "grosse", "grossi", "40 cm", "family"], { sortOrder: 2 }),
+        opt("opt-size-normal", "Normal", 0, ["klein", "normal", "32 cm"], {
+          isDefault: true,
+          sortOrder: 1,
+        }),
+        opt("opt-size-gross", "Gross", 500, ["gross", "grosse", "grossi", "40 cm", "family"], {
+          sortOrder: 2,
+        }),
       ],
     },
     {
@@ -111,7 +116,13 @@ export const demoMenu: MenuSnapshot = {
       maxSelect: 5,
       sortOrder: 2,
       options: [
-        opt("opt-x-mozz", "Extra Mozzarella", 200, ["extra Käse", "mehr Käse", "extra Chäs", "Käse"], { sortOrder: 1 }),
+        opt(
+          "opt-x-mozz",
+          "Extra Mozzarella",
+          200,
+          ["extra Käse", "mehr Käse", "extra Chäs", "Käse"],
+          { sortOrder: 1 },
+        ),
         opt("opt-x-scharf", "Scharf", 0, ["pikant", "Peperoncini", "scharf"], { sortOrder: 2 }),
         opt("opt-x-oliven", "Oliven", 150, ["Olive"], { sortOrder: 3 }),
         opt("opt-x-rucola", "Rucola", 200, ["Rocket", "Ruccola"], { sortOrder: 4 }),
@@ -126,9 +137,14 @@ export const demoMenu: MenuSnapshot = {
       maxSelect: 2,
       sortOrder: 3,
       options: [
-        opt("opt-sauce-knobli", "Knoblauchsauce", 0, ["Knoblauch", "Knobli", "Knoblisauce"], { isDefault: true, sortOrder: 1 }),
+        opt("opt-sauce-knobli", "Knoblauchsauce", 0, ["Knoblauch", "Knobli", "Knoblisauce"], {
+          isDefault: true,
+          sortOrder: 1,
+        }),
         opt("opt-sauce-cocktail", "Cocktailsauce", 0, ["Cocktail"], { sortOrder: 2 }),
-        opt("opt-sauce-scharf", "Scharfe Sauce", 0, ["scharf", "Chili", "Chilisauce"], { sortOrder: 3 }),
+        opt("opt-sauce-scharf", "Scharfe Sauce", 0, ["scharf", "Chili", "Chilisauce"], {
+          sortOrder: 3,
+        }),
         opt("opt-sauce-joghurt", "Joghurtsauce", 0, ["Joghurt", "Jogurt"], { sortOrder: 4 }),
       ],
     },
@@ -140,10 +156,14 @@ export const demoMenu: MenuSnapshot = {
       sortOrder: 4,
       options: [
         opt("opt-d-cola", "Coca-Cola 0.5l", 0, ["Cola", "Coke", "Coca Cola"], { sortOrder: 1 }),
-        opt("opt-d-zero", "Coca-Cola Zero 0.5l", 0, ["Cola Zero", "Coke Zero", "Zero"], { sortOrder: 2 }),
+        opt("opt-d-zero", "Coca-Cola Zero 0.5l", 0, ["Cola Zero", "Coke Zero", "Zero"], {
+          sortOrder: 2,
+        }),
         opt("opt-d-fanta", "Fanta 0.5l", 0, ["Fanta"], { sortOrder: 3 }),
         opt("opt-d-rivella", "Rivella Rot 0.5l", 0, ["Rivella"], { sortOrder: 4 }),
-        opt("opt-d-mineral", "Mineralwasser 0.5l", 0, ["Wasser", "Mineral", "Henniez"], { sortOrder: 5 }),
+        opt("opt-d-mineral", "Mineralwasser 0.5l", 0, ["Wasser", "Mineral", "Henniez"], {
+          sortOrder: 5,
+        }),
       ],
     },
   ],
@@ -277,7 +297,10 @@ demoMenu.items = [
     aliases: ["Cola Zero", "Coke Zero"],
     sortOrder: 2,
   }),
-  item("item-rivella", "cat-drinks", "Rivella Rot 0.5l", 450, { aliases: ["Rivella"], sortOrder: 3 }),
+  item("item-rivella", "cat-drinks", "Rivella Rot 0.5l", 450, {
+    aliases: ["Rivella"],
+    sortOrder: 3,
+  }),
   item("item-mineral", "cat-drinks", "Mineralwasser 0.5l", 400, {
     aliases: ["Mineral", "Wasser", "Henniez"],
     sortOrder: 4,
@@ -287,5 +310,8 @@ demoMenu.items = [
     sortOrder: 5,
   }),
   item("item-tiramisu", "cat-dessert", "Tiramisu", 850, { sortOrder: 1 }),
-  item("item-pannacotta", "cat-dessert", "Panna Cotta", 750, { aliases: ["Pannacotta"], sortOrder: 2 }),
+  item("item-pannacotta", "cat-dessert", "Panna Cotta", 750, {
+    aliases: ["Pannacotta"],
+    sortOrder: 2,
+  }),
 ];

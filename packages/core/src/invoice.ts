@@ -120,7 +120,10 @@ function lettersToDigits(s: string): string {
 
 /** ISO 11649 creditor reference ("RF18 5390 0754 7034"), usable with a regular IBAN on a QR-bill. */
 export function createScorReference(input: string): string {
-  const ref = input.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 21);
+  const ref = input
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "")
+    .slice(0, 21);
   if (!ref) throw new Error("Reference must contain alphanumeric characters");
   const check = 98 - mod97(lettersToDigits(`${ref}RF00`));
   return `RF${String(check).padStart(2, "0")}${ref}`;

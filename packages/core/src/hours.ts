@@ -71,7 +71,11 @@ const WEEKDAY_FROM_EN: Record<string, Weekday> = {
 
 /** Wall-clock parts of an instant in a time zone. */
 export function getLocalParts(at: Date, timeZone: string): LocalParts {
-  const parts = Object.fromEntries(formatter(timeZone).formatToParts(at).map((p) => [p.type, p.value]));
+  const parts = Object.fromEntries(
+    formatter(timeZone)
+      .formatToParts(at)
+      .map((p) => [p.type, p.value]),
+  );
   const year = Number(parts.year);
   const month = Number(parts.month);
   const day = Number(parts.day);
@@ -90,7 +94,11 @@ export function getLocalParts(at: Date, timeZone: string): LocalParts {
 
 /** Offset (ms) of the time zone relative to UTC at a given instant. */
 function tzOffsetMs(at: Date, timeZone: string): number {
-  const p = Object.fromEntries(formatter(timeZone).formatToParts(at).map((x) => [x.type, x.value]));
+  const p = Object.fromEntries(
+    formatter(timeZone)
+      .formatToParts(at)
+      .map((x) => [x.type, x.value]),
+  );
   const asUtc = Date.UTC(
     Number(p.year),
     Number(p.month) - 1,
@@ -145,7 +153,11 @@ export function isValidRange(range: TimeRange): boolean {
 }
 
 /** Ranges that apply to a local date (exception overrides the weekly schedule). */
-export function rangesForDate(date: string, hours: WeeklyHours, exceptions: HoursException[] = []): TimeRange[] {
+export function rangesForDate(
+  date: string,
+  hours: WeeklyHours,
+  exceptions: HoursException[] = [],
+): TimeRange[] {
   const exception = exceptions.find((e) => e.date === date);
   if (exception) return exception.ranges.filter(isValidRange);
   return (hours[weekdayOf(date)] ?? []).filter(isValidRange);
@@ -174,7 +186,11 @@ export function openIntervals(
       const start = zonedTimeToUtc(date, r.open, timeZone);
       const endDate = closeMin <= openMin ? addDays(date, 1) : date;
       const closeStr = r.close === "24:00" ? "00:00" : r.close;
-      const end = zonedTimeToUtc(r.close === "24:00" ? addDays(date, 1) : endDate, closeStr, timeZone);
+      const end = zonedTimeToUtc(
+        r.close === "24:00" ? addDays(date, 1) : endDate,
+        closeStr,
+        timeZone,
+      );
       if (end.getTime() > from.getTime() - 24 * 3600_000) out.push({ start, end });
     }
   }
@@ -275,11 +291,7 @@ export function describeWeeklyHours(hours: WeeklyHours): string {
  * Validates a requested pickup/delivery time ("HH:MM", restaurant-local, today or the next opening day)
  * and returns the absolute instant.
  */
-export function resolveRequestedTime(
-  value: string,
-  now: Date,
-  timeZone: string,
-): Date | null {
+export function resolveRequestedTime(value: string, now: Date, timeZone: string): Date | null {
   const minutes = parseTime(value);
   if (minutes === null) return null;
   const today = getLocalParts(now, timeZone).date;

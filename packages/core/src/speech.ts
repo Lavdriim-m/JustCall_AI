@@ -39,14 +39,19 @@ export function normalizeForSpeech(input: string): string {
   t = t.replace(/\s*\[(?:[IOL]\d+)\]/g, "");
   t = t.replace(/\((?:[IOL]\d+)\)/g, "");
   // Prices: "CHF 18.50", "18.50 CHF", "Fr. 18.–", "18.- Fr."
-  t = t.replace(/\b(?:CHF|SFr\.?|Fr\.)\s?(\d{1,3}(?:['’]\d{3})*|\d+)(?:[.,](\d{1,2}|–|-{1,2}))?/g, (_m, f: string, r?: string) =>
-    spokenAmount(f, r && /\d/.test(r) ? r : undefined),
+  t = t.replace(
+    /\b(?:CHF|SFr\.?|Fr\.)\s?(\d{1,3}(?:['’]\d{3})*|\d+)(?:[.,](\d{1,2}|–|-{1,2}))?/g,
+    (_m, f: string, r?: string) => spokenAmount(f, r && /\d/.test(r) ? r : undefined),
   );
-  t = t.replace(/\b(\d{1,3}(?:['’]\d{3})*|\d+)(?:[.,](\d{2}|–|-{1,2}))?\s?(?:CHF|Franken|Fr\.)(?!\s?\d)/g, (_m, f: string, r?: string) =>
-    spokenAmount(f, r && /\d/.test(r) ? r : undefined),
+  t = t.replace(
+    /\b(\d{1,3}(?:['’]\d{3})*|\d+)(?:[.,](\d{2}|–|-{1,2}))?\s?(?:CHF|Franken|Fr\.)(?!\s?\d)/g,
+    (_m, f: string, r?: string) => spokenAmount(f, r && /\d/.test(r) ? r : undefined),
   );
   // "+2.00" option surcharges
-  t = t.replace(/\+\s?(\d+)[.,](\d{2})\b/g, (_m, f: string, r: string) => `plus ${spokenAmount(f, r)}`);
+  t = t.replace(
+    /\+\s?(\d+)[.,](\d{2})\b/g,
+    (_m, f: string, r: string) => `plus ${spokenAmount(f, r)}`,
+  );
   // Times "18:30" → "18 Uhr 30", "18:00" → "18 Uhr"
   t = t.replace(/\b([01]?\d|2[0-3]):([0-5]\d)\s?(?:Uhr)?\b/g, (_m, h: string, m: string) =>
     m === "00" ? `${Number(h)} Uhr` : `${Number(h)} Uhr ${Number(m)}`,

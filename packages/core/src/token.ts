@@ -26,20 +26,34 @@ function timingSafeEqual(a: string, b: string): boolean {
   return diff === 0;
 }
 
-export async function signToken(payload: Record<string, unknown>, secret: string, ttlSeconds = 300): Promise<string> {
-  if (!secret || secret.length < 16) throw new Error("Signing secret must be at least 16 characters");
-  const body = b64url(new TextEncoder().encode(JSON.stringify({ ...payload, exp: Math.floor(Date.now() / 1000) + ttlSeconds })));
+export async function signToken(
+  payload: Record<string, unknown>,
+  secret: string,
+  ttlSeconds = 300,
+): Promise<string> {
+  if (!secret || secret.length < 16)
+    throw new Error("Signing secret must be at least 16 characters");
+  const body = b64url(
+    new TextEncoder().encode(
+      JSON.stringify({ ...payload, exp: Math.floor(Date.now() / 1000) + ttlSeconds }),
+    ),
+  );
   return `${body}.${await hmac(secret, body)}`;
 }
 
-export async function verifyToken<T extends Record<string, unknown>>(token: string, secret: string): Promise<T | null> {
+export async function verifyToken<T extends Record<string, unknown>>(
+  token: string,
+  secret: string,
+): Promise<T | null> {
   if (!token || !secret) return null;
   const [body, sig] = token.split(".");
   if (!body || !sig) return null;
   const expected = await hmac(secret, body);
   if (!timingSafeEqual(sig, expected)) return null;
   try {
-    const payload = JSON.parse(Buffer.from(body, "base64url").toString("utf8")) as T & { exp?: number };
+    const payload = JSON.parse(Buffer.from(body, "base64url").toString("utf8")) as T & {
+      exp?: number;
+    };
     if (!payload.exp || payload.exp < Math.floor(Date.now() / 1000)) return null;
     return payload;
   } catch {

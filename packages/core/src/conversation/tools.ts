@@ -25,7 +25,10 @@ export const TOOL_SPECS: ToolSpec[] = [
                 items: { type: "string" },
                 description: "Gewählte Optionen (Kennung oder Name)",
               },
-              notes: { type: "string", description: "Sonderwunsch ohne passende Option, z. B. 'ohne Zwiebeln'" },
+              notes: {
+                type: "string",
+                description: "Sonderwunsch ohne passende Option, z. B. 'ohne Zwiebeln'",
+              },
             },
             required: ["item"],
             additionalProperties: false,
@@ -45,7 +48,11 @@ export const TOOL_SPECS: ToolSpec[] = [
       properties: {
         line: { type: "string", description: "Positions-Kennung, z. B. L2" },
         quantity: { type: "integer", minimum: 0 },
-        options: { type: "array", items: { type: "string" }, description: "Neue Optionen für die genannten Gruppen" },
+        options: {
+          type: "array",
+          items: { type: "string" },
+          description: "Neue Optionen für die genannten Gruppen",
+        },
         notes: { type: "string" },
       },
       required: ["line"],
@@ -114,7 +121,8 @@ export const TOOL_SPECS: ToolSpec[] = [
   },
   {
     name: "set_customer",
-    description: "Erfasst den Namen für die Bestellung und optional eine Handynummer für die SMS-Bestätigung.",
+    description:
+      "Erfasst den Namen für die Bestellung und optional eine Handynummer für die SMS-Bestätigung.",
     parameters: {
       type: "object",
       properties: {
@@ -158,7 +166,10 @@ export const TOOL_SPECS: ToolSpec[] = [
     parameters: {
       type: "object",
       properties: {
-        customer_confirmed: { type: "boolean", description: "true, wenn der Kunde die Zusammenfassung ausdrücklich bestätigt hat" },
+        customer_confirmed: {
+          type: "boolean",
+          description: "true, wenn der Kunde die Zusammenfassung ausdrücklich bestätigt hat",
+        },
       },
       required: ["customer_confirmed"],
       additionalProperties: false,
@@ -183,11 +194,15 @@ export const TOOL_SPECS: ToolSpec[] = [
   },
   {
     name: "end_call",
-    description: "Beendet das Gespräch nach der Verabschiedung, wenn keine Bestellung aufgegeben wird.",
+    description:
+      "Beendet das Gespräch nach der Verabschiedung, wenn keine Bestellung aufgegeben wird.",
     parameters: {
       type: "object",
       properties: {
-        reason: { type: "string", enum: ["no_order", "wrong_number", "caller_request", "information_only"] },
+        reason: {
+          type: "string",
+          enum: ["no_order", "wrong_number", "caller_request", "information_only"],
+        },
       },
       required: ["reason"],
       additionalProperties: false,

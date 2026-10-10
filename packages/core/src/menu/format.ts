@@ -3,7 +3,9 @@ import type { MenuIndex } from "./menu-index";
 
 function delta(cents: number): string {
   if (cents === 0) return "";
-  return cents > 0 ? ` +${formatChf(cents, { withCurrency: false })}` : ` ${formatChf(cents, { withCurrency: false })}`;
+  return cents > 0
+    ? ` +${formatChf(cents, { withCurrency: false })}`
+    : ` ${formatChf(cents, { withCurrency: false })}`;
 }
 
 /**
@@ -50,13 +52,22 @@ export function formatMenuForPrompt(index: MenuIndex): string {
       lines.push(`### ${category}`);
       currentCategory = category;
     }
-    const parts = [`- [${index.refForItem(item.id)}] ${item.name}`, formatChf(item.priceCents, { withCurrency: false })];
+    const parts = [
+      `- [${index.refForItem(item.id)}] ${item.name}`,
+      formatChf(item.priceCents, { withCurrency: false }),
+    ];
     const aka = [...item.aliases];
     if (item.code) aka.push(`Nummer ${item.code}`);
     if (aka.length) parts.push(`auch genannt: ${aka.join(", ")}`);
     if (item.description) parts.push(item.description);
     if (item.tags.length) parts.push(item.tags.join(", "));
-    if (item.groupIds.length) parts.push(`Optionen: ${item.groupIds.map((g) => groupRef.get(g)).filter(Boolean).join(", ")}`);
+    if (item.groupIds.length)
+      parts.push(
+        `Optionen: ${item.groupIds
+          .map((g) => groupRef.get(g))
+          .filter(Boolean)
+          .join(", ")}`,
+      );
     if (!item.isAvailable) parts.push("HEUTE AUSVERKAUFT");
     lines.push(parts.join(" | "));
   }

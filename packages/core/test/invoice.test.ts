@@ -40,7 +40,11 @@ describe("computeInvoice", () => {
 
 describe("periods", () => {
   it("computes month periods", () => {
-    expect(monthPeriod("2026-02")).toEqual({ start: "2026-02-01", end: "2026-02-28", label: "Februar 2026" });
+    expect(monthPeriod("2026-02")).toEqual({
+      start: "2026-02-01",
+      end: "2026-02-28",
+      label: "Februar 2026",
+    });
     expect(previousMonth("2026-01-01")).toBe("2025-12");
   });
 });

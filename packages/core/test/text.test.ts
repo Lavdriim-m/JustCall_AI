@@ -11,7 +11,9 @@ describe("normalize", () => {
     expect(tokenize("zwöi Pizza")).toEqual(["2", "pizza"]);
   });
   it("drops stopwords on request", () => {
-    expect(tokenize("ich hätt gern e Margherita bitte", { dropStopwords: true })).toEqual(["margherita"]);
+    expect(tokenize("ich hätt gern e Margherita bitte", { dropStopwords: true })).toEqual([
+      "margherita",
+    ]);
   });
 });
 

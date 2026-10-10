@@ -29,7 +29,10 @@ export class MenuIndex {
   readonly items: MenuItemSnap[];
   private readonly itemRefs = new Map<string, MenuItemSnap>();
   private readonly refByItemId = new Map<string, string>();
-  private readonly optionRefs = new Map<string, { option: MenuOptionSnap; group: OptionGroupSnap }>();
+  private readonly optionRefs = new Map<
+    string,
+    { option: MenuOptionSnap; group: OptionGroupSnap }
+  >();
   private readonly refByOptionId = new Map<string, string>();
   private readonly groups = new Map<string, OptionGroupSnap>();
   private readonly names = new Map<string, IndexedName[]>();
@@ -144,12 +147,22 @@ export class MenuIndex {
     const byRef = this.itemRefs.get(raw.toLowerCase());
     if (byRef) {
       const ref = this.refForItem(byRef.id);
-      return { status: "exact", item: byRef, ref, candidates: [{ item: byRef, ref, score: 1, matchedName: byRef.name }] };
+      return {
+        status: "exact",
+        item: byRef,
+        ref,
+        candidates: [{ item: byRef, ref, score: 1, matchedName: byRef.name }],
+      };
     }
     const byId = this.items.find((i) => i.id === raw);
     if (byId) {
       const ref = this.refForItem(byId.id);
-      return { status: "exact", item: byId, ref, candidates: [{ item: byId, ref, score: 1, matchedName: byId.name }] };
+      return {
+        status: "exact",
+        item: byId,
+        ref,
+        candidates: [{ item: byId, ref, score: 1, matchedName: byId.name }],
+      };
     }
 
     const normalized = normalize(raw);
@@ -159,16 +172,28 @@ export class MenuIndex {
     const codeHit = this.codes.get(codeQuery) ?? this.codes.get(normalized);
     if (codeHit && (CODE_PREFIX.test(numericQuery) || /^\w{1,4}$/.test(codeQuery))) {
       const ref = this.refForItem(codeHit.id);
-      return { status: "exact", item: codeHit, ref, candidates: [{ item: codeHit, ref, score: 1, matchedName: codeHit.code ?? codeHit.name }] };
+      return {
+        status: "exact",
+        item: codeHit,
+        ref,
+        candidates: [{ item: codeHit, ref, score: 1, matchedName: codeHit.code ?? codeHit.name }],
+      };
     }
 
     // Exact name/alias match (normalised)
     for (const item of this.items) {
       const names = this.names.get(item.id) ?? [];
-      const hit = names.find((n) => n.normalized === normalized || n.tokens.join(" ") === numericQuery);
+      const hit = names.find(
+        (n) => n.normalized === normalized || n.tokens.join(" ") === numericQuery,
+      );
       if (hit) {
         const ref = this.refForItem(item.id);
-        return { status: "exact", item, ref, candidates: [{ item, ref, score: 1, matchedName: hit.text }] };
+        return {
+          status: "exact",
+          item,
+          ref,
+          candidates: [{ item, ref, score: 1, matchedName: hit.text }],
+        };
       }
     }
 
@@ -184,13 +209,20 @@ export class MenuIndex {
           bestName = n.text;
         }
       }
-      if (best > 0) candidates.push({ item, ref: this.refForItem(item.id), score: best, matchedName: bestName });
+      if (best > 0)
+        candidates.push({
+          item,
+          ref: this.refForItem(item.id),
+          score: best,
+          matchedName: bestName,
+        });
     }
     candidates.sort((a, b) => b.score - a.score);
     const top = candidates.slice(0, 5);
     const first = top[0];
     const second = top[1];
-    if (!first || first.score < 0.45) return { status: "none", candidates: top.filter((c) => c.score >= 0.3) };
+    if (!first || first.score < 0.45)
+      return { status: "none", candidates: top.filter((c) => c.score >= 0.3) };
     const margin = first.score - (second?.score ?? 0);
     if (first.score >= 0.72 && (margin >= 0.12 || (second?.score ?? 0) < 0.5)) {
       return { status: "confident", item: first.item, ref: first.ref, candidates: top };
@@ -204,7 +236,12 @@ export class MenuIndex {
     const groups = this.groupsForItem(item);
     const byRef = this.optionRefs.get(raw.toLowerCase());
     if (byRef && groups.some((g) => g.id === byRef.group.id)) {
-      return { status: "matched", option: byRef.option, group: byRef.group, ref: this.refForOption(byRef.option.id) };
+      return {
+        status: "matched",
+        option: byRef.option,
+        group: byRef.group,
+        ref: this.refForOption(byRef.option.id),
+      };
     }
     const all = groups.flatMap((group) => group.options.map((option) => ({ option, group })));
     const byId = all.find((o) => o.option.id === raw);
@@ -237,7 +274,12 @@ export class MenuIndex {
     if (!first) return { status: "none" };
     const second = scored[1];
     if (!second || first.score - second.score >= 0.15) {
-      return { status: "matched", option: first.option, group: first.group, ref: this.refForOption(first.option.id) };
+      return {
+        status: "matched",
+        option: first.option,
+        group: first.group,
+        ref: this.refForOption(first.option.id),
+      };
     }
     return { status: "ambiguous", candidates: scored.slice(0, 4) };
   }
@@ -248,7 +290,13 @@ export class MenuIndex {
     if (!q.length) return [];
     const scored = this.items.map((item) => {
       const haystack = tokenize(
-        [item.name, ...item.aliases, item.description ?? "", ...item.tags, this.categoryName(item.categoryId) ?? ""].join(" "),
+        [
+          item.name,
+          ...item.aliases,
+          item.description ?? "",
+          ...item.tags,
+          this.categoryName(item.categoryId) ?? "",
+        ].join(" "),
         { dropStopwords: true },
       );
       let hits = 0;
@@ -267,8 +315,12 @@ export class MenuIndex {
 
 function fScore(query: string[], name: string[]): number {
   if (!query.length || !name.length) return 0;
-  const recall = name.reduce((acc, t) => acc + Math.max(...query.map((q) => tokenSimilarity(t, q))), 0) / name.length;
-  const precision = query.reduce((acc, q) => acc + Math.max(...name.map((t) => tokenSimilarity(q, t))), 0) / query.length;
+  const recall =
+    name.reduce((acc, t) => acc + Math.max(...query.map((q) => tokenSimilarity(t, q))), 0) /
+    name.length;
+  const precision =
+    query.reduce((acc, q) => acc + Math.max(...name.map((t) => tokenSimilarity(q, t))), 0) /
+    query.length;
   if (!recall || !precision) return 0;
   return (2 * precision * recall) / (precision + recall);
 }

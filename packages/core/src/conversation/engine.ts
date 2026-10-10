@@ -132,7 +132,8 @@ export class ConversationEngine {
     this.maxToolRounds = options.maxToolRounds ?? 6;
     this.temperature = options.temperature ?? 0.3;
     this.callerPhone = options.caller.phone;
-    this.customerPhone = options.caller.phone && canReceiveSms(options.caller.phone) ? options.caller.phone : null;
+    this.customerPhone =
+      options.caller.phone && canReceiveSms(options.caller.phone) ? options.caller.phone : null;
     this.systemPrompt = buildSystemPrompt(this.restaurant, this.menu);
   }
 
@@ -155,7 +156,12 @@ export class ConversationEngine {
         { type: "hangup", reason: "paused" },
       ];
     }
-    const open = getOpenState(this.now(), this.restaurant.openingHours, this.restaurant.hoursExceptions, this.restaurant.timezone);
+    const open = getOpenState(
+      this.now(),
+      this.restaurant.openingHours,
+      this.restaurant.hoursExceptions,
+      this.restaurant.timezone,
+    );
     let greeting: string;
     if (open.isOpen) {
       greeting = defaultGreeting(this.restaurant);
@@ -209,9 +215,17 @@ export class ConversationEngine {
       for (const ev of this.handleAllergy(`Erwähnt: "${allergy.matched}"`)) yield ev;
       return;
     }
-    if (this.restaurant.transferOnOwnerRequest && this.restaurant.transferPhone && detectHumanRequest(text)) {
+    if (
+      this.restaurant.transferOnOwnerRequest &&
+      this.restaurant.transferPhone &&
+      detectHumanRequest(text)
+    ) {
       yield { type: "tool", name: "guard.human_request", arguments: { text }, result: true };
-      for (const ev of this.beginTransfer("owner_request", "Kunde möchte mit einer Person sprechen", PHRASES.ownerTransfer)) {
+      for (const ev of this.beginTransfer(
+        "owner_request",
+        "Kunde möchte mit einer Person sprechen",
+        PHRASES.ownerTransfer,
+      )) {
         yield ev;
       }
       return;
@@ -382,7 +396,11 @@ export class ConversationEngine {
 
   private handleTechnicalFailure(): EngineEvent[] {
     if (this.restaurant.transferPhone) {
-      return this.beginTransfer("technical", "Technisches Problem mit dem Sprachmodell", PHRASES.technicalTransfer);
+      return this.beginTransfer(
+        "technical",
+        "Technisches Problem mit dem Sprachmodell",
+        PHRASES.technicalTransfer,
+      );
     }
     this.phase = "ending";
     this.endReason = "technical_error";
@@ -402,14 +420,18 @@ export class ConversationEngine {
   private describeNextOpening(at: Date): string {
     const tz = this.restaurant.timezone;
     const now = this.now();
-    const sameDay = formatLocalDateTime(at, tz).split(",")[1] === formatLocalDateTime(now, tz).split(",")[1];
+    const sameDay =
+      formatLocalDateTime(at, tz).split(",")[1] === formatLocalDateTime(now, tz).split(",")[1];
     const day = formatLocalDateTime(at, tz).split(",")[0];
     return sameDay ? `${formatLocalTime(at, tz)} Uhr` : `${day}, ${formatLocalTime(at, tz)} Uhr`;
   }
 
   private leadMinutes(type: FulfillmentType): number {
     const r = this.restaurant;
-    return (type === "delivery" ? r.deliveryTimeMinutes : r.prepTimeMinutes) + Math.max(0, r.extraWaitMinutes);
+    return (
+      (type === "delivery" ? r.deliveryTimeMinutes : r.prepTimeMinutes) +
+      Math.max(0, r.extraWaitMinutes)
+    );
   }
 
   /** Earliest possible ready/delivery time, or null when ordering is impossible right now. */
@@ -429,7 +451,12 @@ export class ConversationEngine {
   private isOpenAt(at: Date): boolean {
     const r = this.restaurant;
     // Must still be open one minute before the requested time.
-    return getOpenState(new Date(at.getTime() - 60_000), r.openingHours, r.hoursExceptions, r.timezone).isOpen;
+    return getOpenState(
+      new Date(at.getTime() - 60_000),
+      r.openingHours,
+      r.hoursExceptions,
+      r.timezone,
+    ).isOpen;
   }
 
   private detailsKey(): string {
@@ -458,10 +485,17 @@ export class ConversationEngine {
     const missing: string[] = [];
     const r = this.restaurant;
     if (this.cart.isEmpty) missing.push("Artikel");
-    if (r.allergyQuestionEnabled && this.allergyStatus === "unknown") missing.push("Antwort auf die Allergiefrage");
-    if (!this.fulfillment) missing.push(r.pickupEnabled && r.deliveryEnabled ? "Abholung oder Lieferung und Zeit" : "gewünschte Zeit");
+    if (r.allergyQuestionEnabled && this.allergyStatus === "unknown")
+      missing.push("Antwort auf die Allergiefrage");
+    if (!this.fulfillment)
+      missing.push(
+        r.pickupEnabled && r.deliveryEnabled
+          ? "Abholung oder Lieferung und Zeit"
+          : "gewünschte Zeit",
+      );
     if (!this.customerName) missing.push("Name");
-    if (this.fulfillment?.type === "delivery" && !this.customerPhone) missing.push("Telefonnummer für die Lieferung");
+    if (this.fulfillment?.type === "delivery" && !this.customerPhone)
+      missing.push("Telefonnummer für die Lieferung");
     if (r.paymentMethods.length > 1 && !this.paymentMethod) missing.push("Zahlungsart");
     return missing;
   }
@@ -473,11 +507,15 @@ export class ConversationEngine {
       ? `um ${formatLocalTime(this.fulfillment.requestedFor, tz)}`
       : (() => {
           const eta = this.earliestTime(this.fulfillment!.type);
-          return eta ? `so schnell wie möglich (ca. ${formatLocalTime(eta, tz)})` : "so schnell wie möglich";
+          return eta
+            ? `so schnell wie möglich (ca. ${formatLocalTime(eta, tz)})`
+            : "so schnell wie möglich";
         })();
     if (this.fulfillment.type === "delivery") {
       const a = this.fulfillment.address;
-      const addr = a ? [a.street, [a.postalCode, a.city].filter(Boolean).join(" ")].filter(Boolean).join(", ") : "";
+      const addr = a
+        ? [a.street, [a.postalCode, a.city].filter(Boolean).join(" ")].filter(Boolean).join(", ")
+        : "";
       return `Lieferung ${when}${addr ? ` an ${addr}` : ""}`;
     }
     return `Abholung ${when}`;
@@ -492,26 +530,38 @@ export class ConversationEngine {
     const lines: string[] = ["STAND DES GESPRÄCHS (Systeminformation, nicht vom Kunden gesagt)"];
     lines.push(`- Jetzt: ${formatLocalDateTime(now, tz)}`);
     if (open.isOpen) {
-      lines.push(`- Restaurant: geöffnet${open.current ? ` bis ${formatLocalTime(open.current.end, tz)} Uhr` : ""}`);
+      lines.push(
+        `- Restaurant: geöffnet${open.current ? ` bis ${formatLocalTime(open.current.end, tz)} Uhr` : ""}`,
+      );
     } else {
       lines.push(
         `- Restaurant: GESCHLOSSEN${open.next ? `, nächste Öffnung ${this.describeNextOpening(open.next.start)}` : ""}. ${
-          r.allowPreorders ? "Vorbestellungen für nach der Öffnung sind möglich." : "Keine Bestellungen möglich."
+          r.allowPreorders
+            ? "Vorbestellungen für nach der Öffnung sind möglich."
+            : "Keine Bestellungen möglich."
         }`,
       );
     }
     if (r.pickupEnabled) {
       const t = this.earliestTime("pickup");
-      lines.push(`- Frühestmögliche Abholung: ${t ? `${formatLocalTime(t, tz)} Uhr` : "heute nicht möglich"}`);
+      lines.push(
+        `- Frühestmögliche Abholung: ${t ? `${formatLocalTime(t, tz)} Uhr` : "heute nicht möglich"}`,
+      );
     }
     if (r.deliveryEnabled) {
       const t = this.earliestTime("delivery");
-      lines.push(`- Frühestmögliche Lieferung: ${t ? `${formatLocalTime(t, tz)} Uhr` : "heute nicht möglich"}`);
+      lines.push(
+        `- Frühestmögliche Lieferung: ${t ? `${formatLocalTime(t, tz)} Uhr` : "heute nicht möglich"}`,
+      );
     }
     if (r.allergyQuestionEnabled) {
       lines.push(
         `- Allergiefrage: ${
-          this.allergyStatus === "unknown" ? "noch nicht beantwortet" : this.allergyStatus === "none" ? "beantwortet – keine Allergien" : "Allergie gemeldet"
+          this.allergyStatus === "unknown"
+            ? "noch nicht beantwortet"
+            : this.allergyStatus === "none"
+              ? "beantwortet – keine Allergien"
+              : "Allergie gemeldet"
         }`,
       );
     }
@@ -534,7 +584,9 @@ export class ConversationEngine {
       );
     }
     if (this.orderNote) lines.push(`- Bemerkung: ${this.orderNote}`);
-    lines.push(`- Zusammenfassung vorgelesen: ${this.reviewedKey === this.detailsKey() ? "ja (aktuell)" : "nein"}`);
+    lines.push(
+      `- Zusammenfassung vorgelesen: ${this.reviewedKey === this.detailsKey() ? "ja (aktuell)" : "nein"}`,
+    );
     lines.push(`- NÄCHSTER SCHRITT: ${this.nextStep()}`);
     return lines.join("\n");
   }
@@ -548,7 +600,9 @@ export class ConversationEngine {
     if (r.allergyQuestionEnabled && this.allergyStatus === "unknown") {
       return "Lies kurz vor, was notiert ist (falls noch nicht geschehen), und stelle JETZT die Allergiefrage, bevor du weitermachst.";
     }
-    const missing = this.missingDetails().filter((m) => m !== "Artikel" && !m.startsWith("Antwort"));
+    const missing = this.missingDetails().filter(
+      (m) => m !== "Artikel" && !m.startsWith("Antwort"),
+    );
     if (missing.length) {
       return `Nimm weitere Wünsche auf. Sobald der Kunde nichts mehr möchte, kläre der Reihe nach: ${missing.join(", ")}.`;
     }
@@ -646,7 +700,14 @@ export class ConversationEngine {
 
   private toolRemoveLine(args: Record<string, unknown>): ToolOutcome {
     const line = this.cart.getLine(String(args.line ?? ""));
-    if (!line) return { result: { ok: false, error: `Position ${String(args.line)} existiert nicht.`, ...this.cartState() } };
+    if (!line)
+      return {
+        result: {
+          ok: false,
+          error: `Position ${String(args.line)} existiert nicht.`,
+          ...this.cartState(),
+        },
+      };
     this.cart.remove(line.lineId);
     return { result: { ok: true, entfernt: describeLine(line), ...this.cartState() } };
   }
@@ -671,16 +732,25 @@ export class ConversationEngine {
     const has = args.has_allergy === true || String(args.has_allergy).toLowerCase() === "true";
     if (!has) {
       this.allergyStatus = "none";
-      return { result: { ok: true, hinweis: "Keine Allergien. Bedanke dich kurz und fahre mit der Bestellung fort." } };
+      return {
+        result: {
+          ok: true,
+          hinweis: "Keine Allergien. Bedanke dich kurz und fahre mit der Bestellung fort.",
+        },
+      };
     }
     this.allergyStatus = "reported";
     if (this.restaurant.transferOnAllergy && this.restaurant.transferPhone) {
-      this.pendingTransfer = { reason: "allergy", note: String(args.details ?? "Allergie gemeldet") };
+      this.pendingTransfer = {
+        reason: "allergy",
+        note: String(args.details ?? "Allergie gemeldet"),
+      };
       return {
         result: {
           ok: true,
           weiterleitung: true,
-          hinweis: "Sage in einem Satz, dass du bei Allergien aus Sicherheitsgründen direkt mit dem Team verbindest. Keine weiteren Fragen.",
+          hinweis:
+            "Sage in einem Satz, dass du bei Allergien aus Sicherheitsgründen direkt mit dem Team verbindest. Keine weiteren Fragen.",
         },
       };
     }
@@ -689,7 +759,8 @@ export class ConversationEngine {
       result: {
         ok: true,
         weiterleitung: false,
-        hinweis: "Erkläre, dass du bei Allergien keine Bestellung aufnehmen kannst und der Kunde sich direkt an das Personal im Restaurant wenden soll. Verabschiede dich.",
+        hinweis:
+          "Erkläre, dass du bei Allergien keine Bestellung aufnehmen kannst und der Kunde sich direkt an das Personal im Restaurant wenden soll. Verabschiede dich.",
       },
     };
   }
@@ -697,14 +768,19 @@ export class ConversationEngine {
   private toolSetFulfillment(args: Record<string, unknown>): ToolOutcome {
     const r = this.restaurant;
     const type = args.type === "delivery" ? "delivery" : "pickup";
-    if (type === "pickup" && !r.pickupEnabled) return { result: { ok: false, error: "Abholung ist nicht möglich, nur Lieferung." } };
-    if (type === "delivery" && !r.deliveryEnabled) return { result: { ok: false, error: "Lieferung ist nicht möglich, nur Abholung." } };
+    if (type === "pickup" && !r.pickupEnabled)
+      return { result: { ok: false, error: "Abholung ist nicht möglich, nur Lieferung." } };
+    if (type === "delivery" && !r.deliveryEnabled)
+      return { result: { ok: false, error: "Lieferung ist nicht möglich, nur Abholung." } };
 
     let address: DeliveryAddressInput | null = null;
     if (type === "delivery") {
       const a = (args.address ?? {}) as Record<string, unknown>;
       const street = String(a.street ?? "").trim();
-      if (!street) return { result: { ok: false, error: "Für die Lieferung brauche ich Strasse und Hausnummer." } };
+      if (!street)
+        return {
+          result: { ok: false, error: "Für die Lieferung brauche ich Strasse und Hausnummer." },
+        };
       address = {
         street,
         postalCode: a.postal_code ? String(a.postal_code).trim() : undefined,
@@ -712,7 +788,8 @@ export class ConversationEngine {
         notes: a.notes ? String(a.notes).trim() : undefined,
       };
       if (r.deliveryPostalCodes.length) {
-        if (!address.postalCode) return { result: { ok: false, error: "Bitte nach der Postleitzahl fragen." } };
+        if (!address.postalCode)
+          return { result: { ok: false, error: "Bitte nach der Postleitzahl fragen." } };
         if (!r.deliveryPostalCodes.includes(address.postalCode)) {
           return {
             result: {
@@ -729,16 +806,20 @@ export class ConversationEngine {
       return {
         result: {
           ok: false,
-          error: "Das Restaurant ist geschlossen und nimmt jetzt keine Bestellungen an. Informiere über die Öffnungszeiten.",
+          error:
+            "Das Restaurant ist geschlossen und nimmt jetzt keine Bestellungen an. Informiere über die Öffnungszeiten.",
         },
       };
     }
     const tz = r.timezone;
-    const timeArg = String(args.time ?? "asap").trim().toLowerCase();
+    const timeArg = String(args.time ?? "asap")
+      .trim()
+      .toLowerCase();
     let requestedFor: Date | null = null;
     if (timeArg && timeArg !== "asap" && timeArg !== "sofort") {
       const t = resolveRequestedTime(timeArg, this.now(), tz);
-      if (!t) return { result: { ok: false, error: "Zeit bitte im Format HH:MM angeben oder 'asap'." } };
+      if (!t)
+        return { result: { ok: false, error: "Zeit bitte im Format HH:MM angeben oder 'asap'." } };
       if (t.getTime() < earliest.getTime() - 2 * 60_000) {
         return {
           result: {
@@ -748,7 +829,12 @@ export class ConversationEngine {
         };
       }
       if (t.getTime() - this.now().getTime() > 24 * 3600_000) {
-        return { result: { ok: false, error: "Vorbestellungen sind nur für die nächsten 24 Stunden möglich." } };
+        return {
+          result: {
+            ok: false,
+            error: "Vorbestellungen sind nur für die nächsten 24 Stunden möglich.",
+          },
+        };
       }
       if (!this.isOpenAt(t)) {
         return {
@@ -789,15 +875,31 @@ export class ConversationEngine {
   }
 
   private toolSetCustomer(args: Record<string, unknown>): ToolOutcome {
-    const name = String(args.name ?? "").trim().replace(/\s+/g, " ");
-    if (!name || name.length > 60) return { result: { ok: false, error: "Bitte einen gültigen Namen erfassen." } };
+    const name = String(args.name ?? "")
+      .trim()
+      .replace(/\s+/g, " ");
+    if (!name || name.length > 60)
+      return { result: { ok: false, error: "Bitte einen gültigen Namen erfassen." } };
     this.customerName = name;
     if (args.phone) {
       const e164 = toE164(String(args.phone));
-      if (!e164) return { result: { ok: false, error: "Die Telefonnummer ist ungültig. Bitte nochmals erfragen.", name } };
+      if (!e164)
+        return {
+          result: {
+            ok: false,
+            error: "Die Telefonnummer ist ungültig. Bitte nochmals erfragen.",
+            name,
+          },
+        };
       this.customerPhone = e164;
     }
-    return { result: { ok: true, name, telefon: this.customerPhone ? formatSwissNumber(this.customerPhone) : null } };
+    return {
+      result: {
+        ok: true,
+        name,
+        telefon: this.customerPhone ? formatSwissNumber(this.customerPhone) : null,
+      },
+    };
   }
 
   private toolSetPayment(args: Record<string, unknown>): ToolOutcome {
@@ -816,9 +918,13 @@ export class ConversationEngine {
 
   private toolReview(): ToolOutcome {
     const missing = this.missingDetails();
-    if (missing.includes("Artikel")) return { result: { ok: false, error: "Der Warenkorb ist leer." } };
+    if (missing.includes("Artikel"))
+      return { result: { ok: false, error: "Der Warenkorb ist leer." } };
     const r = this.restaurant;
-    if (this.fulfillment?.type === "delivery" && this.cart.subtotalCents < r.deliveryMinOrderCents) {
+    if (
+      this.fulfillment?.type === "delivery" &&
+      this.cart.subtotalCents < r.deliveryMinOrderCents
+    ) {
       return {
         result: {
           ok: false,
@@ -827,7 +933,9 @@ export class ConversationEngine {
       };
     }
     if (missing.length) {
-      return { result: { ok: false, error: `Vor der Zusammenfassung fehlt noch: ${missing.join(", ")}.` } };
+      return {
+        result: { ok: false, error: `Vor der Zusammenfassung fehlt noch: ${missing.join(", ")}.` },
+      };
     }
     this.reviewedKey = this.detailsKey();
     const fee = this.deliveryFee();
@@ -851,34 +959,57 @@ export class ConversationEngine {
 
   private async toolConfirm(args: Record<string, unknown>): Promise<ToolOutcome> {
     if (this.placedOrder) {
-      return { result: { ok: true, bereits_bestaetigt: true, bestellnummer: this.placedOrder.orderNumber } };
+      return {
+        result: { ok: true, bereits_bestaetigt: true, bestellnummer: this.placedOrder.orderNumber },
+      };
     }
     if (args.customer_confirmed !== true) {
-      return { result: { ok: false, error: "Der Kunde muss die Zusammenfassung zuerst ausdrücklich bestätigen." } };
+      return {
+        result: {
+          ok: false,
+          error: "Der Kunde muss die Zusammenfassung zuerst ausdrücklich bestätigen.",
+        },
+      };
     }
     const missing = this.missingDetails();
-    if (missing.length) return { result: { ok: false, error: `Es fehlt noch: ${missing.join(", ")}.` } };
+    if (missing.length)
+      return { result: { ok: false, error: `Es fehlt noch: ${missing.join(", ")}.` } };
     if (this.reviewedKey !== this.detailsKey()) {
       return {
         result: {
           ok: false,
-          error: "Die Bestellung wurde seit der letzten Zusammenfassung geändert oder noch nicht zusammengefasst. Rufe review_order auf und lies sie vor.",
+          error:
+            "Die Bestellung wurde seit der letzten Zusammenfassung geändert oder noch nicht zusammengefasst. Rufe review_order auf und lies sie vor.",
         },
       };
     }
     const r = this.restaurant;
     const f = this.fulfillment!;
     if (f.type === "delivery" && this.cart.subtotalCents < r.deliveryMinOrderCents) {
-      return { result: { ok: false, error: `Mindestbestellwert für Lieferung ${formatChf(r.deliveryMinOrderCents)} nicht erreicht.` } };
+      return {
+        result: {
+          ok: false,
+          error: `Mindestbestellwert für Lieferung ${formatChf(r.deliveryMinOrderCents)} nicht erreicht.`,
+        },
+      };
     }
     const eta = this.estimatedReadyAt();
     if (!eta) {
-      return { result: { ok: false, error: "Das Restaurant nimmt gerade keine Bestellungen an (geschlossen)." } };
+      return {
+        result: {
+          ok: false,
+          error: "Das Restaurant nimmt gerade keine Bestellungen an (geschlossen).",
+        },
+      };
     }
     const fee = this.deliveryFee();
     const draft: OrderDraft = {
       restaurantId: r.id,
-      lines: this.cart.items.map((l) => ({ ...l, unitPriceCents: lineUnitPrice(l), lineTotalCents: lineTotal(l) })),
+      lines: this.cart.items.map((l) => ({
+        ...l,
+        unitPriceCents: lineUnitPrice(l),
+        lineTotalCents: lineTotal(l),
+      })),
       subtotalCents: this.cart.subtotalCents,
       deliveryFeeCents: fee,
       totalCents: this.cart.subtotalCents + fee,
@@ -888,7 +1019,8 @@ export class ConversationEngine {
       customerName: this.customerName!,
       customerPhone: this.customerPhone,
       deliveryAddress: f.address,
-      paymentMethod: this.paymentMethod ?? (r.paymentMethods.length === 1 ? r.paymentMethods[0]! : null),
+      paymentMethod:
+        this.paymentMethod ?? (r.paymentMethods.length === 1 ? r.paymentMethods[0]! : null),
       notes: this.orderNote,
     };
     let placed: PlacedOrder;
@@ -898,7 +1030,8 @@ export class ConversationEngine {
       return {
         result: {
           ok: false,
-          error: "Die Bestellung konnte technisch nicht übermittelt werden. Entschuldige dich und verbinde mit dem Personal (transfer_to_staff, reason other).",
+          error:
+            "Die Bestellung konnte technisch nicht übermittelt werden. Entschuldige dich und verbinde mit dem Personal (transfer_to_staff, reason other).",
           detail: err instanceof Error ? err.message : String(err),
         },
       };
@@ -907,7 +1040,9 @@ export class ConversationEngine {
     this.pendingHangup = "order_placed";
     const tz = r.timezone;
     const payment = draft.paymentMethod;
-    let paymentHint = payment ? PAYMENT_LABELS_DE[payment] : paymentMethodsSentence(r.paymentMethods);
+    let paymentHint = payment
+      ? PAYMENT_LABELS_DE[payment]
+      : paymentMethodsSentence(r.paymentMethods);
     if (payment === "twint" && r.twintPaymentUrl && placed.smsStatus === "sent") {
       paymentHint += " – der TWINT-Link ist in der SMS";
     }
@@ -927,8 +1062,16 @@ export class ConversationEngine {
   }
 
   private toolTransfer(args: Record<string, unknown>): ToolOutcome {
-    const allowed: TransferReason[] = ["allergy", "owner_request", "complaint", "large_order", "other"];
-    const reason = (allowed.includes(args.reason as TransferReason) ? args.reason : "other") as TransferReason;
+    const allowed: TransferReason[] = [
+      "allergy",
+      "owner_request",
+      "complaint",
+      "large_order",
+      "other",
+    ];
+    const reason = (
+      allowed.includes(args.reason as TransferReason) ? args.reason : "other"
+    ) as TransferReason;
     const note = args.note ? String(args.note) : undefined;
     if (reason === "allergy") this.allergyStatus = "reported";
     const r = this.restaurant;
@@ -951,24 +1094,38 @@ export class ConversationEngine {
         result: {
           ok: false,
           weiterleitung: false,
-          hinweis: "Eine Verbindung zum Inhaber ist nicht vorgesehen. Biete freundlich an, die Bestellung aufzunehmen.",
+          hinweis:
+            "Eine Verbindung zum Inhaber ist nicht vorgesehen. Biete freundlich an, die Bestellung aufzunehmen.",
         },
       };
     }
     this.pendingTransfer = { reason, note };
     this.transferReason = reason;
-    return { result: { ok: true, weiterleitung: true, hinweis: "Sage in einem kurzen Satz, dass du jetzt verbindest." } };
+    return {
+      result: {
+        ok: true,
+        weiterleitung: true,
+        hinweis: "Sage in einem kurzen Satz, dass du jetzt verbindest.",
+      },
+    };
   }
 
   private toolEndCall(args: Record<string, unknown>): ToolOutcome {
     if (!this.placedOrder && !this.cart.isEmpty) {
-      const said = normalize(String(this.messages.filter((m) => m.role === "user").at(-1)?.content ?? ""));
+      const said = normalize(
+        String(this.messages.filter((m) => m.role === "user").at(-1)?.content ?? ""),
+      );
       // Prevent accidental hang-ups while an order is in progress, unless the caller cancelled.
-      if (!/\b(tschuss|tschau|ciao|adieu|uf widerluege|auf wiederh\w*|abbrechen|nicht mehr|doch nicht|vergessen sie|stornier\w*|egal)\b/.test(said)) {
+      if (
+        !/\b(tschuss|tschau|ciao|adieu|uf widerluege|auf wiederh\w*|abbrechen|nicht mehr|doch nicht|vergessen sie|stornier\w*|egal)\b/.test(
+          said,
+        )
+      ) {
         return {
           result: {
             ok: false,
-            error: "Es ist eine Bestellung in Arbeit. Frage zuerst, ob der Kunde die Bestellung abbrechen möchte.",
+            error:
+              "Es ist eine Bestellung in Arbeit. Frage zuerst, ob der Kunde die Bestellung abbrechen möchte.",
           },
         };
       }

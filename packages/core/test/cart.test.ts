@@ -35,7 +35,10 @@ describe("Cart", () => {
     expect(cart.isEmpty).toBe(true);
     const ok = cart.add({ item: "Kebab-Menü", options: ["Rivella", "Cocktail"] });
     expect(ok.status).toBe("added");
-    expect(cart.items[0]!.options.map((o) => o.optionName)).toEqual(["Cocktailsauce", "Rivella Rot 0.5l"]);
+    expect(cart.items[0]!.options.map((o) => o.optionName)).toEqual([
+      "Cocktailsauce",
+      "Rivella Rot 0.5l",
+    ]);
   });
 
   it("keeps the last mention in single-choice groups", () => {
@@ -58,7 +61,9 @@ describe("Cart", () => {
     expect(cart.add({ item: "Margherita", options: ["Trüffel"] }).status).toBe("invalid_option");
     const soldOut = new MenuIndex({
       ...demoMenu,
-      items: demoMenu.items.map((i) => (i.id === "item-tiramisu" ? { ...i, isAvailable: false } : i)),
+      items: demoMenu.items.map((i) =>
+        i.id === "item-tiramisu" ? { ...i, isAvailable: false } : i,
+      ),
     });
     expect(new Cart(soldOut).add({ item: "Tiramisu" }).status).toBe("unavailable");
   });
@@ -87,7 +92,9 @@ describe("Cart", () => {
     const cart = newCart();
     cart.add({ item: "Margherita", quantity: 2 });
     cart.add({ item: "Cola" });
-    expect(cart.summary()).toBe("L1: 2x Margherita (Normal) = CHF 32.00\nL2: 1x Coca-Cola 0.5l = CHF 4.50");
+    expect(cart.summary()).toBe(
+      "L1: 2x Margherita (Normal) = CHF 32.00\nL2: 1x Coca-Cola 0.5l = CHF 4.50",
+    );
     expect(cart.subtotalCents).toBe(3650);
   });
 });

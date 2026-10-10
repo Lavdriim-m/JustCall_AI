@@ -5,7 +5,10 @@
  * are converted to +41…; other international numbers must start with + or 00.
  * Returns null when the input cannot be a valid number.
  */
-export function toE164(input: string | null | undefined, defaultCountry: "CH" = "CH"): string | null {
+export function toE164(
+  input: string | null | undefined,
+  defaultCountry: "CH" = "CH",
+): string | null {
   if (!input) return null;
   let s = input.trim().replace(/[\s\-/().]/g, "");
   if (!s) return null;

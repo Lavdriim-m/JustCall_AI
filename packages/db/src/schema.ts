@@ -192,7 +192,10 @@ export const restaurants = pgTable(
     deliveryEnabled: boolean("delivery_enabled").notNull().default(false),
     deliveryFeeCents: integer("delivery_fee_cents").notNull().default(0),
     deliveryMinOrderCents: integer("delivery_min_order_cents").notNull().default(0),
-    deliveryPostalCodes: text("delivery_postal_codes").array().notNull().default(sql`'{}'::text[]`),
+    deliveryPostalCodes: text("delivery_postal_codes")
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
     prepTimeMinutes: integer("prep_time_minutes").notNull().default(20),
     deliveryTimeMinutes: integer("delivery_time_minutes").notNull().default(45),
     extraWaitMinutes: integer("extra_wait_minutes").notNull().default(0),
@@ -336,11 +339,20 @@ export const menuItems = pgTable(
     /** Short menu code customers may use, e.g. "3" or "M3". */
     code: text("code"),
     /** Alternative names that refer to the same item, e.g. ["Combo 3", "Napoli", "Menü 3"]. */
-    aliases: text("aliases").array().notNull().default(sql`'{}'::text[]`),
+    aliases: text("aliases")
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
     priceCents: integer("price_cents").notNull(),
-    tags: text("tags").array().notNull().default(sql`'{}'::text[]`),
+    tags: text("tags")
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
     /** Informational only. The bot never gives allergy advice; it transfers to staff. */
-    allergens: text("allergens").array().notNull().default(sql`'{}'::text[]`),
+    allergens: text("allergens")
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
     /** Temporarily sold out (staff toggle). */
     isAvailable: boolean("is_available").notNull().default(true),
     /** Soft delete / hidden from the bot. */
@@ -383,7 +395,10 @@ export const options = pgTable(
       .notNull()
       .references(() => optionGroups.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
-    aliases: text("aliases").array().notNull().default(sql`'{}'::text[]`),
+    aliases: text("aliases")
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
     priceDeltaCents: integer("price_delta_cents").notNull().default(0),
     isDefault: boolean("is_default").notNull().default(false),
     isAvailable: boolean("is_available").notNull().default(true),

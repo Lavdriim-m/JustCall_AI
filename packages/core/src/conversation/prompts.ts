@@ -51,7 +51,7 @@ const PHONE_RULES = `TELEFON-REGELN (sehr wichtig, alles wird vorgelesen)
 function flowRules(profile: RestaurantProfile): string {
   const steps: string[] = [];
   steps.push(
-    "1. BESTELLUNG AUFNEHMEN: Erfasse genannte Artikel sofort mit add_items (alle genannten Artikel in einem Aufruf). Lies danach kurz vor, was du notiert hast (Menge, Name, gewählte Optionen – ohne Preise) und frage: \"Darf es sonst noch etwas sein?\"",
+    '1. BESTELLUNG AUFNEHMEN: Erfasse genannte Artikel sofort mit add_items (alle genannten Artikel in einem Aufruf). Lies danach kurz vor, was du notiert hast (Menge, Name, gewählte Optionen – ohne Preise) und frage: "Darf es sonst noch etwas sein?"',
   );
   if (profile.allergyQuestionEnabled) {
     steps.push(
@@ -94,10 +94,10 @@ function safetyRules(profile: RestaurantProfile): string {
   const rules = [
     "SICHERHEIT UND WEITERLEITUNG (strikt)",
     profile.transferOnAllergy
-      ? "- Allergien und Unverträglichkeiten: Sobald jemand auch nur ansatzweise Allergien, Unverträglichkeiten, Zöliakie, glutenfrei, laktosefrei, Nüsse o. ä. erwähnt oder danach fragt, rufe sofort transfer_to_staff mit reason \"allergy\" auf. Gib NIEMALS selbst Auskunft über Zutaten im Zusammenhang mit Allergien und sage nie, dass etwas unbedenklich ist."
+      ? '- Allergien und Unverträglichkeiten: Sobald jemand auch nur ansatzweise Allergien, Unverträglichkeiten, Zöliakie, glutenfrei, laktosefrei, Nüsse o. ä. erwähnt oder danach fragt, rufe sofort transfer_to_staff mit reason "allergy" auf. Gib NIEMALS selbst Auskunft über Zutaten im Zusammenhang mit Allergien und sage nie, dass etwas unbedenklich ist.'
       : "- Allergien und Unverträglichkeiten: Gib NIEMALS Auskunft über Allergene und sage nie, dass etwas unbedenklich ist. Sage, dass das Personal bei der Abholung Auskunft gibt.",
     profile.transferOnOwnerRequest
-      ? "- Möchte jemand mit dem Chef, dem Inhaber, dem Personal oder einem Menschen sprechen, rufe transfer_to_staff mit reason \"owner_request\" auf."
+      ? '- Möchte jemand mit dem Chef, dem Inhaber, dem Personal oder einem Menschen sprechen, rufe transfer_to_staff mit reason "owner_request" auf.'
       : "- Möchte jemand mit einem Menschen sprechen, erkläre freundlich, dass du die Bestellung gerne aufnimmst.",
     "- Reklamationen, Reservationen, Catering, grosse Gruppenbestellungen oder Fragen, die du nicht beantworten kannst: transfer_to_staff mit passendem reason (complaint, large_order, other).",
     "- Verbinde nur, wenn es nötig ist. Sage vor dem Verbinden kurz, dass du verbindest.",
@@ -129,7 +129,9 @@ function restaurantInfo(profile: RestaurantProfile): string {
     `- Abholung: ${profile.pickupEnabled ? `ja, Zubereitungszeit ca. ${profile.prepTimeMinutes} Minuten` : "nein"}`,
     profile.deliveryEnabled
       ? `- Lieferung: ja, Lieferzeit ca. ${profile.deliveryTimeMinutes} Minuten, Liefergebühr ${formatChf(profile.deliveryFeeCents)}, Mindestbestellwert ${formatChf(profile.deliveryMinOrderCents)}${
-          profile.deliveryPostalCodes.length ? `, Liefergebiet PLZ: ${profile.deliveryPostalCodes.join(", ")}` : ""
+          profile.deliveryPostalCodes.length
+            ? `, Liefergebiet PLZ: ${profile.deliveryPostalCodes.join(", ")}`
+            : ""
         }`
       : "- Lieferung: nein",
     `- Bezahlung: ${paymentMethodsSentence(profile.paymentMethods)}${profile.paymentNote ? ` (${profile.paymentNote})` : ""}`,
@@ -164,7 +166,10 @@ export function buildSystemPrompt(profile: RestaurantProfile, menu: MenuIndex): 
 
 export function defaultGreeting(profile: RestaurantProfile): string {
   if (profile.greeting?.trim()) {
-    return profile.greeting.replaceAll("{restaurant}", profile.name).replaceAll("{bot}", profile.botName).trim();
+    return profile.greeting
+      .replaceAll("{restaurant}", profile.name)
+      .replaceAll("{bot}", profile.botName)
+      .trim();
   }
   if (profile.speechStyle === "swiss_dialect") {
     return `Grüezi bi ${profile.name}! Do isch d'${profile.botName}, di digital Bstell-Assistentin. Was dörf ich für Sie notiere?`;

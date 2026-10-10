@@ -1,6 +1,17 @@
 import OpenAI from "openai";
-import type { ChatCompletionCreateParamsStreaming, ChatCompletionMessageParam } from "openai/resources/chat/completions";
-import { LlmError, emptyUsage, parseToolArguments, type LlmClient, type LlmRequest, type LlmResponse, type ToolCall } from "./types";
+import type {
+  ChatCompletionCreateParamsStreaming,
+  ChatCompletionMessageParam,
+} from "openai/resources/chat/completions";
+import {
+  LlmError,
+  emptyUsage,
+  parseToolArguments,
+  type LlmClient,
+  type LlmRequest,
+  type LlmResponse,
+  type ToolCall,
+} from "./types";
 
 export type OpenAiLlmOptions = {
   apiKey: string;
@@ -74,15 +85,19 @@ export class OpenAiLlm implements LlmClient {
     if (!this.unsupported.has("parallel_tool_calls")) params.parallel_tool_calls = true;
     if (request.maxTokens && !this.unsupported.has("max_completion_tokens")) {
       // Reasoning models need head-room for hidden reasoning tokens.
-      params.max_completion_tokens = isReasoning ? Math.max(request.maxTokens * 4, 2000) : request.maxTokens;
+      params.max_completion_tokens = isReasoning
+        ? Math.max(request.maxTokens * 4, 2000)
+        : request.maxTokens;
     }
     if (!isReasoning && request.temperature !== undefined && !this.unsupported.has("temperature")) {
       params.temperature = request.temperature;
     }
     if (isReasoning && this.reasoningEffort && !this.unsupported.has("reasoning_effort")) {
-      params.reasoning_effort = this.reasoningEffort as ChatCompletionCreateParamsStreaming["reasoning_effort"];
+      params.reasoning_effort = this
+        .reasoningEffort as ChatCompletionCreateParamsStreaming["reasoning_effort"];
     }
-    if (request.cacheKey && !this.unsupported.has("prompt_cache_key")) params.prompt_cache_key = request.cacheKey;
+    if (request.cacheKey && !this.unsupported.has("prompt_cache_key"))
+      params.prompt_cache_key = request.cacheKey;
     return params;
   }
 
@@ -131,7 +146,11 @@ export class OpenAiLlm implements LlmClient {
     }
     const toolCalls: ToolCall[] = [...calls.entries()]
       .sort((a, b) => a[0] - b[0])
-      .map(([i, c]) => ({ id: c.id || `call_${i}`, name: c.name, arguments: parseToolArguments(c.args) }))
+      .map(([i, c]) => ({
+        id: c.id || `call_${i}`,
+        name: c.name,
+        arguments: parseToolArguments(c.args),
+      }))
       .filter((c) => c.name);
     return { text: text.trim(), toolCalls, usage };
   }
@@ -140,7 +159,13 @@ export class OpenAiLlm implements LlmClient {
 function unsupportedParam(err: unknown): string | null {
   if (!(err instanceof OpenAI.APIError) || err.status !== 400) return null;
   const msg = `${err.message} ${JSON.stringify((err as { error?: unknown }).error ?? "")}`;
-  for (const p of ["reasoning_effort", "temperature", "parallel_tool_calls", "prompt_cache_key", "max_completion_tokens"]) {
+  for (const p of [
+    "reasoning_effort",
+    "temperature",
+    "parallel_tool_calls",
+    "prompt_cache_key",
+    "max_completion_tokens",
+  ]) {
     if (msg.includes(p)) return p;
   }
   return null;

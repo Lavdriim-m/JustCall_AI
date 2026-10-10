@@ -5,7 +5,8 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./llm": "./src/llm/index.ts"
+    "./llm": "./src/llm/index.ts",
+    "./fixtures": "./src/fixtures/demo.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

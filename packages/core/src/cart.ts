@@ -157,7 +157,10 @@ export class Cart {
 
     const notes = input.notes?.trim() || null;
     const existing = this.lines.find(
-      (l) => l.itemId === item.id && sameOptions(l.options, resolved.options) && (l.notes ?? null) === notes,
+      (l) =>
+        l.itemId === item.id &&
+        sameOptions(l.options, resolved.options) &&
+        (l.notes ?? null) === notes,
     );
     if (existing) {
       if (existing.quantity + quantity > this.maxQuantity) {
@@ -169,7 +172,12 @@ export class Cart {
       }
       existing.quantity += quantity;
       this.version += 1;
-      return { status: "added", lineId: existing.lineId, text: describeLine(existing), merged: true };
+      return {
+        status: "added",
+        lineId: existing.lineId,
+        text: describeLine(existing),
+        merged: true,
+      };
     }
 
     const line: CartLine = {
@@ -197,7 +205,11 @@ export class Cart {
         this.remove(line.lineId);
         return { ok: true, text: `${line.name} entfernt`, removed: true };
       }
-      if (!Number.isInteger(changes.quantity) || changes.quantity < 1 || changes.quantity > this.maxQuantity) {
+      if (
+        !Number.isInteger(changes.quantity) ||
+        changes.quantity < 1 ||
+        changes.quantity > this.maxQuantity
+      ) {
         return { ok: false, message: `Ungültige Menge. Erlaubt: 1 bis ${this.maxQuantity}.` };
       }
     }
@@ -209,12 +221,18 @@ export class Cart {
       if ("error" in resolved) return { ok: false, message: resolved.error.message };
       // Merge: options from groups that were mentioned replace previous selections of those groups.
       const touchedGroups = new Set(resolved.options.map((o) => o.groupId));
-      newOptions = [...line.options.filter((o) => !touchedGroups.has(o.groupId)), ...resolved.options];
+      newOptions = [
+        ...line.options.filter((o) => !touchedGroups.has(o.groupId)),
+        ...resolved.options,
+      ];
       const groups = this.menu.groupsForItem(item);
       for (const group of groups) {
         const count = newOptions.filter((o) => o.groupId === group.id).length;
         if (count > group.maxSelect) {
-          return { ok: false, message: `Bei ${group.name} sind höchstens ${group.maxSelect} Optionen möglich.` };
+          return {
+            ok: false,
+            message: `Bei ${group.name} sind höchstens ${group.maxSelect} Optionen möglich.`,
+          };
         }
       }
       const missing = this.missingRequired(item, newOptions);
@@ -254,7 +272,10 @@ export class Cart {
   summary({ withPrices = true } = {}): string {
     if (!this.lines.length) return "(leer)";
     return this.lines
-      .map((l) => `${l.lineId}: ${describeLine(l)}${withPrices ? ` = ${formatChf(lineTotal(l))}` : ""}`)
+      .map(
+        (l) =>
+          `${l.lineId}: ${describeLine(l)}${withPrices ? ` = ${formatChf(lineTotal(l))}` : ""}`,
+      )
       .join("\n");
   }
 
@@ -281,7 +302,9 @@ export class Cart {
       if (!raw || !raw.trim()) continue;
       const match = this.menu.matchOption(item, raw);
       if (match.status !== "matched") {
-        const available = groups.flatMap((g) => g.options.filter((o) => o.isAvailable).map((o) => o.name));
+        const available = groups.flatMap((g) =>
+          g.options.filter((o) => o.isAvailable).map((o) => o.name),
+        );
         return {
           error: {
             status: "invalid_option",
@@ -362,14 +385,18 @@ export class Cart {
   private missingRequired(item: MenuItemSnap, selected: CartLineOption[]) {
     return this.menu
       .groupsForItem(item)
-      .filter((g) => g.minSelect > 0 && selected.filter((s) => s.groupId === g.id).length < g.minSelect)
+      .filter(
+        (g) => g.minSelect > 0 && selected.filter((s) => s.groupId === g.id).length < g.minSelect,
+      )
       .map((g) => ({
         group: g.name,
         min: g.minSelect,
         max: g.maxSelect,
         choices: g.options
           .filter((o) => o.isAvailable)
-          .map((o) => (o.priceDeltaCents ? `${o.name} (+${formatChf(o.priceDeltaCents)})` : o.name)),
+          .map((o) =>
+            o.priceDeltaCents ? `${o.name} (+${formatChf(o.priceDeltaCents)})` : o.name,
+          ),
       }));
   }
 }

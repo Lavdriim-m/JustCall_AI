@@ -8,9 +8,21 @@ import { ScriptedLlm } from "../src/llm/mock";
 
 const WEDNESDAY_18H = zonedTimeToUtc("2026-10-07", "18:00", "Europe/Zurich");
 
-function setup(steps: ConstructorParameters<typeof ScriptedLlm>[0], opts: { now?: Date; restaurant?: Partial<RestaurantProfile>; llm?: LlmClient; phone?: string | null } = {}) {
+function setup(
+  steps: ConstructorParameters<typeof ScriptedLlm>[0],
+  opts: {
+    now?: Date;
+    restaurant?: Partial<RestaurantProfile>;
+    llm?: LlmClient;
+    phone?: string | null;
+  } = {},
+) {
   const llm = opts.llm ?? new ScriptedLlm(steps);
-  const placeOrder = vi.fn(async (_draft: OrderDraft) => ({ orderId: "order-1", orderNumber: 101, smsStatus: "sent" as const }));
+  const placeOrder = vi.fn(async (_draft: OrderDraft) => ({
+    orderId: "order-1",
+    orderNumber: 101,
+    smsStatus: "sent" as const,
+  }));
   const engine = new ConversationEngine({
     restaurant: { ...demoRestaurant, ...opts.restaurant },
     menu: demoMenu,
@@ -28,21 +40,40 @@ async function turn(engine: ConversationEngine, text: string): Promise<EngineEve
 }
 
 const said = (events: EngineEvent[]) =>
-  events.filter((e): e is Extract<EngineEvent, { type: "say" }> => e.type === "say").map((e) => e.text).join(" ");
+  events
+    .filter((e): e is Extract<EngineEvent, { type: "say" }> => e.type === "say")
+    .map((e) => e.text)
+    .join(" ");
 
 describe("ConversationEngine – happy path", () => {
   it("takes a complete pickup order with read-back, allergy question, review and confirmation", async () => {
     const { engine, placeOrder } = setup([
-      { toolCalls: [{ name: "add_items", arguments: { items: [{ item: "Napoli", quantity: 2 }, { item: "Cola" }] } }] },
-      { text: "Gerne, zwei Pizza Napoli und ein Cola. Kurze Frage vorab: Hat jemand eine Lebensmittelallergie oder eine Unverträglichkeit?" },
+      {
+        toolCalls: [
+          {
+            name: "add_items",
+            arguments: { items: [{ item: "Napoli", quantity: 2 }, { item: "Cola" }] },
+          },
+        ],
+      },
+      {
+        text: "Gerne, zwei Pizza Napoli und ein Cola. Kurze Frage vorab: Hat jemand eine Lebensmittelallergie oder eine Unverträglichkeit?",
+      },
       { toolCalls: [{ name: "record_allergy_answer", arguments: { has_allergy: false } }] },
       { text: "Danke. Darf es sonst noch etwas sein?" },
       { toolCalls: [{ name: "set_fulfillment", arguments: { type: "pickup", time: "asap" } }] },
       { text: "Auf welchen Namen darf ich die Bestellung aufnehmen?" },
       { toolCalls: [{ name: "set_customer", arguments: { name: "Müller" } }] },
       { text: "Danke. Möchten Sie bar oder mit TWINT bezahlen?" },
-      { toolCalls: [{ name: "set_payment_method", arguments: { method: "twint" } }, { name: "review_order", arguments: {} }] },
-      { text: "Ich fasse zusammen: zwei Pizza Napoli und ein Cola, Abholung um 18 Uhr 20, Name Müller. Total 41 Franken 50. Stimmt das so?" },
+      {
+        toolCalls: [
+          { name: "set_payment_method", arguments: { method: "twint" } },
+          { name: "review_order", arguments: {} },
+        ],
+      },
+      {
+        text: "Ich fasse zusammen: zwei Pizza Napoli und ein Cola, Abholung um 18 Uhr 20, Name Müller. Total 41 Franken 50. Stimmt das so?",
+      },
       { toolCalls: [{ name: "confirm_order", arguments: { customer_confirmed: true } }] },
       { text: "Vielen Dank! Ihre Bestellnummer ist 101. Auf Wiederhören!" },
     ]);
@@ -77,7 +108,9 @@ describe("ConversationEngine – happy path", () => {
       ["Coca-Cola 0.5l", 1],
     ]);
     // 18:00 + 20 min prep → 18:20
-    expect(draft.estimatedReadyAt.toISOString()).toBe(zonedTimeToUtc("2026-10-07", "18:20", "Europe/Zurich").toISOString());
+    expect(draft.estimatedReadyAt.toISOString()).toBe(
+      zonedTimeToUtc("2026-10-07", "18:20", "Europe/Zurich").toISOString(),
+    );
     expect(t6.some((e) => e.type === "order_placed")).toBe(true);
     expect(t6.at(-1)).toEqual({ type: "hangup", reason: "order_placed" });
     expect(engine.phase).toBe("ending");
@@ -98,14 +131,22 @@ describe("ConversationEngine – guards", () => {
     engine.start();
     const events = await turn(engine, "Mini Tochter hät e Nussallergie, isch das es Problem?");
     expect(said(events)).toContain("Allergien");
-    expect(events.at(-1)).toMatchObject({ type: "transfer", reason: "allergy", target: "+41791112233" });
+    expect(events.at(-1)).toMatchObject({
+      type: "transfer",
+      reason: "allergy",
+      target: "+41791112233",
+    });
     expect((llm as ScriptedLlm).requests).toHaveLength(0);
     expect(engine.phase).toBe("transferring");
   });
 
   it("transfers when the model records an allergy", async () => {
     const { engine } = setup([
-      { toolCalls: [{ name: "record_allergy_answer", arguments: { has_allergy: true, details: "Sellerie" } }] },
+      {
+        toolCalls: [
+          { name: "record_allergy_answer", arguments: { has_allergy: true, details: "Sellerie" } },
+        ],
+      },
       { text: "Ich verbinde Sie aus Sicherheitsgründen mit unserem Team." },
     ]);
     engine.start();
@@ -138,17 +179,36 @@ describe("ConversationEngine – guards", () => {
       { text: "Ich lese Ihnen die Bestellung zuerst vor." },
     ]);
     engine.start();
-    const events = await turn(engine, "Eine Margherita, keine Allergien, Abholung sofort, Meier, bar");
+    const events = await turn(
+      engine,
+      "Eine Margherita, keine Allergien, Abholung sofort, Meier, bar",
+    );
     const confirm = events.find((e) => e.type === "tool" && e.name === "confirm_order");
-    expect(confirm && confirm.type === "tool" && (confirm.result as { ok: boolean }).ok).toBe(false);
+    expect(confirm && confirm.type === "tool" && (confirm.result as { ok: boolean }).ok).toBe(
+      false,
+    );
     expect(placeOrder).not.toHaveBeenCalled();
   });
 
   it("requires a new review after the cart changed", async () => {
     const { engine, placeOrder } = setup([
-      { toolCalls: [{ name: "add_items", arguments: { items: [{ item: "Margherita" }] } }, { name: "record_allergy_answer", arguments: { has_allergy: false } }, { name: "set_fulfillment", arguments: { type: "pickup", time: "asap" } }, { name: "set_customer", arguments: { name: "Meier" } }, { name: "set_payment_method", arguments: { method: "cash" } }, { name: "review_order", arguments: {} }] },
+      {
+        toolCalls: [
+          { name: "add_items", arguments: { items: [{ item: "Margherita" }] } },
+          { name: "record_allergy_answer", arguments: { has_allergy: false } },
+          { name: "set_fulfillment", arguments: { type: "pickup", time: "asap" } },
+          { name: "set_customer", arguments: { name: "Meier" } },
+          { name: "set_payment_method", arguments: { method: "cash" } },
+          { name: "review_order", arguments: {} },
+        ],
+      },
       { text: "Stimmt das so?" },
-      { toolCalls: [{ name: "add_items", arguments: { items: [{ item: "Tiramisu" }] } }, { name: "confirm_order", arguments: { customer_confirmed: true } }] },
+      {
+        toolCalls: [
+          { name: "add_items", arguments: { items: [{ item: "Tiramisu" }] } },
+          { name: "confirm_order", arguments: { customer_confirmed: true } },
+        ],
+      },
       { text: "Ich fasse nochmals zusammen." },
     ]);
     engine.start();
@@ -161,31 +221,71 @@ describe("ConversationEngine – guards", () => {
 
   it("validates delivery postal codes and minimum order", async () => {
     const { engine } = setup([
-      { toolCalls: [{ name: "add_items", arguments: { items: [{ item: "Cola" }] } }, { name: "set_fulfillment", arguments: { type: "delivery", time: "asap", address: { street: "Bahnhofstrasse 1", postal_code: "8001", city: "Zürich" } } }] },
+      {
+        toolCalls: [
+          { name: "add_items", arguments: { items: [{ item: "Cola" }] } },
+          {
+            name: "set_fulfillment",
+            arguments: {
+              type: "delivery",
+              time: "asap",
+              address: { street: "Bahnhofstrasse 1", postal_code: "8001", city: "Zürich" },
+            },
+          },
+        ],
+      },
       { text: "Leider liefern wir nicht nach 8001." },
-      { toolCalls: [{ name: "set_fulfillment", arguments: { type: "delivery", time: "asap", address: { street: "Langstrasse 1", postal_code: "8004", city: "Zürich" } } }] },
+      {
+        toolCalls: [
+          {
+            name: "set_fulfillment",
+            arguments: {
+              type: "delivery",
+              time: "asap",
+              address: { street: "Langstrasse 1", postal_code: "8004", city: "Zürich" },
+            },
+          },
+        ],
+      },
       { text: "Der Mindestbestellwert ist 30 Franken." },
     ]);
     engine.start();
     const t1 = await turn(engine, "Es Cola, liefere a d Bahnhofstrass 1, 8001");
-    const f1 = t1.find((e) => e.type === "tool" && e.name === "set_fulfillment") as Extract<EngineEvent, { type: "tool" }>;
+    const f1 = t1.find((e) => e.type === "tool" && e.name === "set_fulfillment") as Extract<
+      EngineEvent,
+      { type: "tool" }
+    >;
     expect(f1.result).toMatchObject({ ok: false });
     const t2 = await turn(engine, "Dann Langstrass 1, 8004");
-    const f2 = t2.find((e) => e.type === "tool" && e.name === "set_fulfillment") as Extract<EngineEvent, { type: "tool" }>;
+    const f2 = t2.find((e) => e.type === "tool" && e.name === "set_fulfillment") as Extract<
+      EngineEvent,
+      { type: "tool" }
+    >;
     expect(f2.result).toMatchObject({ ok: true });
     expect(String((f2.result as { warnung?: string }).warnung)).toContain("Mindestbestellwert");
   });
 
   it("rejects pickup times before the earliest possible time or outside opening hours", async () => {
     const { engine } = setup([
-      { toolCalls: [{ name: "add_items", arguments: { items: [{ item: "Margherita" }] } }, { name: "set_fulfillment", arguments: { type: "pickup", time: "18:05" } }, { name: "set_fulfillment", arguments: { type: "pickup", time: "23:30" } }, { name: "set_fulfillment", arguments: { type: "pickup", time: "19:00" } }] },
+      {
+        toolCalls: [
+          { name: "add_items", arguments: { items: [{ item: "Margherita" }] } },
+          { name: "set_fulfillment", arguments: { type: "pickup", time: "18:05" } },
+          { name: "set_fulfillment", arguments: { type: "pickup", time: "23:30" } },
+          { name: "set_fulfillment", arguments: { type: "pickup", time: "19:00" } },
+        ],
+      },
       { text: "Um 19 Uhr ist notiert." },
     ]);
     engine.start();
     const events = await turn(engine, "E Margherita uf 18:05");
-    const results = events.filter((e) => e.type === "tool" && e.name === "set_fulfillment").map((e) => (e as Extract<EngineEvent, { type: "tool" }>).result as { ok: boolean });
+    const results = events
+      .filter((e) => e.type === "tool" && e.name === "set_fulfillment")
+      .map((e) => (e as Extract<EngineEvent, { type: "tool" }>).result as { ok: boolean });
     expect(results.map((r) => r.ok)).toEqual([false, false, true]);
-    expect(engine.fulfillment?.requestedFor?.toISOString()).toBe(zonedTimeToUtc("2026-10-07", "19:00", "Europe/Zurich").toISOString());
+    expect(engine.fulfillment?.requestedFor?.toISOString()).toBe(
+      zonedTimeToUtc("2026-10-07", "19:00", "Europe/Zurich").toISOString(),
+    );
   });
 });
 
@@ -228,7 +328,12 @@ describe("ConversationEngine – edge cases", () => {
 
   it("does not let the model hang up while an order is in progress", async () => {
     const { engine } = setup([
-      { toolCalls: [{ name: "add_items", arguments: { items: [{ item: "Margherita" }] } }, { name: "end_call", arguments: { reason: "no_order" } }] },
+      {
+        toolCalls: [
+          { name: "add_items", arguments: { items: [{ item: "Margherita" }] } },
+          { name: "end_call", arguments: { reason: "no_order" } },
+        ],
+      },
       { text: "Möchten Sie die Bestellung abbrechen?" },
     ]);
     engine.start();

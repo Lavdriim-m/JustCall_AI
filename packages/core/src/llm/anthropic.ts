@@ -1,6 +1,18 @@
 import Anthropic from "@anthropic-ai/sdk";
-import type { MessageParam, Tool, ToolResultBlockParam, ContentBlockParam } from "@anthropic-ai/sdk/resources/messages";
-import { LlmError, emptyUsage, type LlmClient, type LlmRequest, type LlmResponse, type ToolCall } from "./types";
+import type {
+  MessageParam,
+  Tool,
+  ToolResultBlockParam,
+  ContentBlockParam,
+} from "@anthropic-ai/sdk/resources/messages";
+import {
+  LlmError,
+  emptyUsage,
+  type LlmClient,
+  type LlmRequest,
+  type LlmResponse,
+  type ToolCall,
+} from "./types";
 
 export type AnthropicLlmOptions = {
   apiKey: string;
@@ -16,7 +28,11 @@ export class AnthropicLlm implements LlmClient {
 
   constructor(options: AnthropicLlmOptions) {
     this.model = options.model;
-    this.client = new Anthropic({ apiKey: options.apiKey, timeout: options.timeoutMs ?? 20_000, maxRetries: 1 });
+    this.client = new Anthropic({
+      apiKey: options.apiKey,
+      timeout: options.timeoutMs ?? 20_000,
+      maxRetries: 1,
+    });
   }
 
   private toMessages(request: LlmRequest): MessageParam[] {
@@ -25,7 +41,9 @@ export class AnthropicLlm implements LlmClient {
       if (!blocks.length) return;
       const last = out[out.length - 1];
       if (last && last.role === role) {
-        const existing = Array.isArray(last.content) ? last.content : [{ type: "text" as const, text: last.content }];
+        const existing = Array.isArray(last.content)
+          ? last.content
+          : [{ type: "text" as const, text: last.content }];
         last.content = [...existing, ...blocks];
       } else {
         out.push({ role, content: blocks });
@@ -36,20 +54,31 @@ export class AnthropicLlm implements LlmClient {
       else if (m.role === "assistant") {
         const blocks: ContentBlockParam[] = [];
         if (m.content) blocks.push({ type: "text", text: m.content });
-        for (const tc of m.toolCalls ?? []) blocks.push({ type: "tool_use", id: tc.id, name: tc.name, input: tc.arguments });
+        for (const tc of m.toolCalls ?? [])
+          blocks.push({ type: "tool_use", id: tc.id, name: tc.name, input: tc.arguments });
         push("assistant", blocks);
       } else {
-        const block: ToolResultBlockParam = { type: "tool_result", tool_use_id: m.toolCallId, content: m.content };
+        const block: ToolResultBlockParam = {
+          type: "tool_result",
+          tool_use_id: m.toolCallId,
+          content: m.content,
+        };
         push("user", [block]);
       }
     }
     // The conversation starts with our greeting; the API expects a user turn first.
-    if (out[0]?.role !== "user") out.unshift({ role: "user", content: [{ type: "text", text: "(Anruf verbunden)" }] });
+    if (out[0]?.role !== "user")
+      out.unshift({ role: "user", content: [{ type: "text", text: "(Anruf verbunden)" }] });
     if (request.context) {
-      const contextBlock = { type: "text" as const, text: `<systemkontext>\n${request.context}\n</systemkontext>` };
+      const contextBlock = {
+        type: "text" as const,
+        text: `<systemkontext>\n${request.context}\n</systemkontext>`,
+      };
       const last = out[out.length - 1]!;
       if (last.role === "user") {
-        const blocks = Array.isArray(last.content) ? last.content : [{ type: "text" as const, text: last.content }];
+        const blocks = Array.isArray(last.content)
+          ? last.content
+          : [{ type: "text" as const, text: last.content }];
         last.content = [...blocks, contextBlock];
       } else {
         out.push({ role: "user", content: [contextBlock] });
@@ -83,7 +112,11 @@ export class AnthropicLlm implements LlmClient {
       for (const block of final.content) {
         if (block.type === "text") text += block.text;
         else if (block.type === "tool_use") {
-          toolCalls.push({ id: block.id, name: block.name, arguments: (block.input ?? {}) as Record<string, unknown> });
+          toolCalls.push({
+            id: block.id,
+            name: block.name,
+            arguments: (block.input ?? {}) as Record<string, unknown>,
+          });
         }
       }
       const usage = emptyUsage();
