@@ -30,7 +30,8 @@ export function BuyNumber({ restaurants }: { restaurants: { id: string; name: st
           onClick={() =>
             start(async () => {
               const res = await searchNumbersAction({
-                contains: contains.replace(/\D/g, "") || undefined,
+                // Swiss national format (044 …) → E.164 digits (4144 …), as Twilio searches those.
+                contains: contains.replace(/\D/g, "").replace(/^0(?=\d)/, "41") || undefined,
               });
               if (res?.error) toast.error(res.error);
               else setResults((res?.data as Found[]) ?? []);

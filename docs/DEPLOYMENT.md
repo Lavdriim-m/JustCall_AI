@@ -128,7 +128,8 @@ fly deploy --config apps/voice/fly.toml --dockerfile apps/voice/Dockerfile .
 - `apps/voice/fly.toml` keeps at least one machine running (no cold starts during calls), runs
   migrations as release command, sets `TWILIO_SMS_FROM=JustCall`, and gives running calls up to
   290 s to finish on deploys (`DRAIN_TIMEOUT_SECONDS=290` inside Fly's `kill_timeout = 300`). While it
-  drains, new calls are forwarded to the restaurant's transfer number. With a single machine, a
+  drains, new calls are forwarded to the restaurant's transfer number (restaurants without one are
+  still answered by the assistant). With a single machine, a
   deploy replaces that machine, so deploy outside opening hours.
 - `INTERNAL_API_SECRET` must be the same value as on the web app. The voice server does not read
   `BETTER_AUTH_SECRET` or `CRON_SECRET`.
@@ -167,15 +168,17 @@ To use Supabase instead of the bundled Postgres, set `COMPOSE_DATABASE_URL` in `
 
 When the voice container is stopped, running calls get up to 290 s to finish
 (`DRAIN_TIMEOUT_SECONDS=290` inside `stop_grace_period: 300s`), and new calls are forwarded to the
-restaurant's transfer number meanwhile. `docker compose up` stops the old container before it starts
-the new one, so update outside opening hours.
+restaurant's transfer number meanwhile (restaurants without one are still answered by the
+assistant). `docker compose up` stops the old container before it starts the new one, so update
+outside opening hours.
 
 ## Scaling
 
 - **Voice server**: one instance handles dozens of parallel calls (CPU usage is low; audio transcoding
   is cheap). For high availability run **2+ instances** behind the load balancer – calls are
   independent, and the monthly job uses a database lock so it runs only once. On shutdown the voice
-  server forwards new calls to the restaurant, answers `/health` with 503 and gives running calls up
+  server forwards new calls to the restaurant's transfer number (or still answers them when there is
+  none), counts calls whose audio stream is still connecting, answers `/health` with 503 and gives running calls up
   to `DRAIN_TIMEOUT_SECONDS` to finish (default 25; the shipped configs set 290, a few seconds below
   the 300 s maximum on Render and Fly). Calls longer than that are cut.
 - **Provider quotas** are the real limits – see [OPERATIONS.md](OPERATIONS.md#capacity-planning-50-parallel-calls).
@@ -190,7 +193,9 @@ pnpm install
 pnpm db:migrate        # schema changes are versioned SQL in packages/db/drizzle
 ```
 
-Deploys on Render/Vercel/Fly run the same steps automatically.
+Render (`preDeployCommand`) and Fly (`release_command`) run `pnpm db:migrate` automatically on every
+voice deploy; Vercel does not run migrations. When an update changes the schema, let the voice deploy
+(and its migration) finish before the web deploy goes live, or run `pnpm db:migrate` yourself first.
 
 Changing the schema: edit `packages/db/src/schema.ts`, then `pnpm db:generate` creates a new SQL
 migration – review and commit it.

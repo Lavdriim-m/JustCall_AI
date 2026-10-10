@@ -206,7 +206,7 @@ describe("phone call over Twilio media streams", () => {
     expect(call.twiml).toContain("+41791112233");
   });
 
-  it("forwards new calls while the server drains for a deploy", async () => {
+  it("forwards or still answers new calls while the server drains for a deploy", async () => {
     await createTestRestaurant("+41445550004");
     await createTestRestaurant("+41445550005", { transferPhone: null });
     ctx.draining = true;
@@ -214,6 +214,8 @@ describe("phone call over Twilio media streams", () => {
       const call = await placeCall("+41445550004");
       expect(call.twiml).toContain("<Dial");
       expect(call.twiml).toContain("+41791112233");
+      // Without a transfer number the assistant still answers; the drain waits for its stream.
+      const before = ctx.registry.busy;
       const noTarget = await fetch(`${baseUrl}/twilio/voice`, {
         method: "POST",
         headers: { "content-type": "application/x-www-form-urlencoded" },
@@ -223,7 +225,11 @@ describe("phone call over Twilio media streams", () => {
           To: "+41445550005",
         }),
       });
-      expect(noTarget.status).toBe(503);
+      const twiml = await noTarget.text();
+      expect(twiml).toContain("<Connect>");
+      expect(ctx.registry.busy).toBe(before + 1);
+      ctx.registry.settle(/name="callId" value="([^"]+)"/.exec(twiml)![1]!);
+      expect(ctx.registry.busy).toBe(before);
       expect((await fetch(`${baseUrl}/health`)).status).toBe(503);
     } finally {
       ctx.draining = false;

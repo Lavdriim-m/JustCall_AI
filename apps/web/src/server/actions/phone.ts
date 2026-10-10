@@ -135,7 +135,7 @@ export async function reconfigureWebhooks(numberId: string): Promise<ActionResul
 const searchSchema = z.object({
   contains: z
     .string()
-    .regex(/^\d{1,10}$/)
+    .regex(/^\d{2,16}$/)
     .optional(),
 });
 
@@ -143,7 +143,7 @@ const searchSchema = z.object({
 export async function searchNumbersAction(input: { contains?: string }): Promise<ActionResult> {
   await requireAdmin();
   const parsed = searchSchema.safeParse(input);
-  if (!parsed.success) return fail("Enter up to 10 digits to search for.");
+  if (!parsed.success) return fail("Enter 2–16 digits to search for.");
   if (!isTwilioConfigured()) return fail("Twilio is not configured.");
   try {
     const numbers = await searchAvailableNumbers({

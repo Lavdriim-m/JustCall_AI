@@ -14,6 +14,13 @@ async function main() {
       process.exit(1);
     }
     logger.warn("INTERNAL_API_SECRET is not set – using an insecure development secret");
+  } else if (config.INTERNAL_API_SECRET.length < 16) {
+    // Call tokens need at least 16 characters; a shorter secret would break every call.
+    if (config.NODE_ENV === "production") {
+      logger.fatal("INTERNAL_API_SECRET must have at least 16 characters");
+      process.exit(1);
+    }
+    logger.warn("INTERNAL_API_SECRET is shorter than 16 characters – calls will fail");
   }
   if (config.NODE_ENV === "production" && !config.TWILIO_VALIDATE_SIGNATURES) {
     logger.warn(
@@ -51,7 +58,7 @@ async function main() {
     );
     stopJobs();
     const deadline = Date.now() + Number(process.env.DRAIN_TIMEOUT_SECONDS ?? 25) * 1000;
-    while (ctx.registry.size > 0 && Date.now() < deadline)
+    while (ctx.registry.busy > 0 && Date.now() < deadline)
       await new Promise((r) => setTimeout(r, 500));
     await ctx.registry.stopAll("server_shutdown");
     await app.close();

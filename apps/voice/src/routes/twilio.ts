@@ -81,13 +81,6 @@ export function registerTwilioRoutes(app: FastifyInstance, ctx: AppContext) {
       return xml(`${say("Diese Nummer ist zurzeit nicht in Betrieb. Auf Wiederhören.")}<Hangup/>`);
     }
 
-    // Shutting down for a deploy and nobody to forward to: Twilio then uses the number's fallback
-    // URL (the web app), which forwards the caller to the restaurant.
-    if (ctx.draining && !restaurant.transferPhone) {
-      logger.warn({ to }, "call during shutdown – handing over to the fallback URL");
-      return reply.code(503).type("text/plain").send("shutting down");
-    }
-
     const call = await createCall(db, {
       restaurantId: restaurant.id,
       phoneNumberId: match.phoneNumber.id,
@@ -105,7 +98,8 @@ export function registerTwilioRoutes(app: FastifyInstance, ctx: AppContext) {
       return existing!;
     });
 
-    // Shutting down for a deploy: forward new calls to staff so running calls can finish.
+    // Shutting down for a deploy: forward new calls to staff so running calls can finish. Without a
+    // transfer number the assistant still takes the call (until DRAIN_TIMEOUT_SECONDS).
     if (ctx.draining && restaurant.transferPhone) {
       await updateCall(db, call.id, {
         status: "transferred",
@@ -138,6 +132,8 @@ export function registerTwilioRoutes(app: FastifyInstance, ctx: AppContext) {
       3600,
     );
     const streamUrl = wsUrl(publicBase, "/twilio/stream");
+    // Count the call for a graceful shutdown before its media stream connects.
+    ctx.registry.expect(call.id);
     return xml(
       `<Connect><Stream url="${esc(streamUrl)}"><Parameter name="callId" value="${esc(call.id)}"/><Parameter name="token" value="${esc(token)}"/></Stream></Connect>`,
     );
@@ -261,6 +257,7 @@ export function registerTwilioRoutes(app: FastifyInstance, ctx: AppContext) {
           );
           if (!payload || payload.callId !== params.callId) {
             logger.warn("media stream with invalid token");
+            if (payload) ctx.registry.settle(payload.callId);
             socket.close();
             return;
           }
@@ -275,6 +272,7 @@ export function registerTwilioRoutes(app: FastifyInstance, ctx: AppContext) {
             }
           } catch (err) {
             logger.error({ err, callId }, "could not start call session");
+            if (callId) ctx.registry.settle(callId);
             if (callId)
               await updateCall(db, callId, {
                 status: "failed",
