@@ -41,9 +41,14 @@ describe("detectHumanRequest", () => {
     expect(detectHumanRequest("Ich möchte mit einem Menschen sprechen")).toBe(true);
     expect(detectHumanRequest("Verbinden Sie mich bitte mit dem Inhaber")).toBe(true);
     expect(detectHumanRequest("Ich wott kein Roboter")).toBe(true);
+    expect(detectHumanRequest("Chan ich bitte de Chef ha?")).toBe(true);
+    expect(detectHumanRequest("Isch de Chef da?")).toBe(true);
+    expect(detectHumanRequest("Ist die Inhaberin am Telefon?")).toBe(true);
   });
   it("ignores normal orders", () => {
     expect(detectHumanRequest("Ich hätt gern de Chef-Salat")).toBe(false);
     expect(detectHumanRequest("Zwei Pizza Napoli bitte")).toBe(false);
+    expect(detectHumanRequest("De Chef-Salat ohni Zwieble bitte")).toBe(false);
+    expect(detectHumanRequest("Was empfiehlt de Chef hüt?")).toBe(false);
   });
 });

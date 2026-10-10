@@ -8,7 +8,7 @@
     "build": "next build",
     "start": "next start --port ${PORT:-3000}",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --passWithNoTests",
+    "test": "vitest run --passWithNoTests --dir src",
     "e2e": "playwright test",
     "admin:create": "tsx --env-file-if-exists=../../.env scripts/create-admin.ts"
   },

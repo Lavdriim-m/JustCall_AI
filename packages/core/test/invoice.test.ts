@@ -33,7 +33,7 @@ describe("computeInvoice", () => {
       vatRateBps: 0,
       periodLabel: "Oktober 2026",
     });
-    expect(inv.lines).toHaveLength(1);
+    expect(inv.lines).toHaveLength(0);
     expect(inv.totalCents).toBe(0);
   });
 });

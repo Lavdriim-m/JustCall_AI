@@ -9,7 +9,16 @@ async function main() {
   const config = loadConfig();
   const logger = createLogger(config.LOG_LEVEL);
   if (!config.INTERNAL_API_SECRET) {
+    if (config.NODE_ENV === "production") {
+      logger.fatal("INTERNAL_API_SECRET must be set in production (see .env.example)");
+      process.exit(1);
+    }
     logger.warn("INTERNAL_API_SECRET is not set – using an insecure development secret");
+  }
+  if (config.NODE_ENV === "production" && !config.TWILIO_VALIDATE_SIGNATURES) {
+    logger.warn(
+      "TWILIO_VALIDATE_SIGNATURES=false in production – anyone could fake Twilio webhooks",
+    );
   }
   const db = getDb();
   const { app, ctx } = await buildServer({ config, db, logger });

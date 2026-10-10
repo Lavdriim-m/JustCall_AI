@@ -1,0 +1,53 @@
+# Render Blueprint: deploys the voice server and the web app in Frankfurt.
+# Render → New → Blueprint → select this repository. Then fill in the env vars marked sync: false.
+services:
+  - type: web
+    name: justcall-voice
+    runtime: docker
+    region: frankfurt
+    plan: standard
+    dockerfilePath: apps/voice/Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    preDeployCommand: pnpm --filter @justcall/db migrate
+    envVars:
+      - fromGroup: justcall
+      - key: PORT
+        value: "8080"
+  - type: web
+    name: justcall-web
+    runtime: docker
+    region: frankfurt
+    plan: starter
+    dockerfilePath: apps/web/Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    envVars:
+      - fromGroup: justcall
+      - key: PORT
+        value: "3000"
+
+envVarGroups:
+  - name: justcall
+    envVars:
+      - { key: DATABASE_URL, sync: false }
+      - { key: APP_URL, sync: false }
+      - { key: VOICE_PUBLIC_URL, sync: false }
+      - { key: BETTER_AUTH_SECRET, generateValue: true }
+      - { key: INTERNAL_API_SECRET, generateValue: true }
+      - { key: CRON_SECRET, generateValue: true }
+      - { key: LLM_PROVIDER, value: openai }
+      - { key: OPENAI_API_KEY, sync: false }
+      - { key: OPENAI_MODEL, value: gpt-5.4-mini }
+      - { key: STT_PROVIDER, value: aws }
+      - { key: TTS_PROVIDER, value: polly }
+      - { key: AWS_REGION, value: eu-central-1 }
+      - { key: AWS_ACCESS_KEY_ID, sync: false }
+      - { key: AWS_SECRET_ACCESS_KEY, sync: false }
+      - { key: TWILIO_ACCOUNT_SID, sync: false }
+      - { key: TWILIO_AUTH_TOKEN, sync: false }
+      - { key: TWILIO_SMS_FROM, value: JustCall }
+      - { key: SMTP_HOST, sync: false }
+      - { key: SMTP_USER, sync: false }
+      - { key: SMTP_PASSWORD, sync: false }
+      - { key: EMAIL_FROM, sync: false }

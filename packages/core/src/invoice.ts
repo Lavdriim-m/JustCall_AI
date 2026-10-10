@@ -35,7 +35,7 @@ export type ComputedInvoice = {
 export function computeInvoice(input: InvoiceInput): ComputedInvoice {
   const { terms, orderCount, orderVolumeCents, vatRateBps, periodLabel } = input;
   const lines: ComputedInvoiceLine[] = [];
-  if (terms.commissionBps > 0) {
+  if (terms.commissionBps > 0 && orderVolumeCents > 0) {
     const amount = applyBps(orderVolumeCents, terms.commissionBps);
     lines.push({
       description: `Kommission ${formatPercentFromBps(terms.commissionBps)} auf Bestellvolumen ${formatChf(orderVolumeCents)} (${orderCount} Bestellungen, ${periodLabel})`,

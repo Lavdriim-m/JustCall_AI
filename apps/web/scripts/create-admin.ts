@@ -30,15 +30,13 @@ async function main() {
     if (arg("password")) {
       if (acc) await db.update(account).set({ password: hash }).where(eq(account.id, acc.id));
       else
-        await db
-          .insert(account)
-          .values({
-            id: crypto.randomUUID(),
-            accountId: existing.id,
-            providerId: "credential",
-            userId: existing.id,
-            password: hash,
-          });
+        await db.insert(account).values({
+          id: crypto.randomUUID(),
+          accountId: existing.id,
+          providerId: "credential",
+          userId: existing.id,
+          password: hash,
+        });
     }
     console.log(
       `✓ ${email} is now an administrator${arg("password") ? " (password updated)" : ""}.`,
@@ -46,15 +44,13 @@ async function main() {
   } else {
     const id = crypto.randomUUID();
     await db.insert(user).values({ id, name, email, emailVerified: true, role: "admin" });
-    await db
-      .insert(account)
-      .values({
-        id: crypto.randomUUID(),
-        accountId: id,
-        providerId: "credential",
-        userId: id,
-        password: hash,
-      });
+    await db.insert(account).values({
+      id: crypto.randomUUID(),
+      accountId: id,
+      providerId: "credential",
+      userId: id,
+      password: hash,
+    });
     console.log(`✓ Administrator created: ${email}`);
     if (!arg("password")) console.log(`  Temporary password: ${password}`);
   }

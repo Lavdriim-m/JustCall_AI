@@ -1,0 +1,54 @@
+# Complete self-hosted JustCall stack: PostgreSQL, migrations, voice server and web app.
+#   cp .env.example .env   # fill in the values
+#   docker compose up -d --build
+# Web: http://localhost:3000 · Voice: http://localhost:8080 (expose it via HTTPS for Twilio)
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: justcall
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-justcall-local-password}
+      POSTGRES_DB: justcall
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U justcall"]
+      interval: 5s
+      retries: 10
+
+  migrate:
+    build: { context: ., dockerfile: apps/voice/Dockerfile }
+    env_file: .env
+    environment:
+      DATABASE_URL: ${COMPOSE_DATABASE_URL:-postgres://justcall:justcall-local-password@db:5432/justcall}
+    command: ["pnpm", "--filter", "@justcall/db", "migrate"]
+    working_dir: /app
+    depends_on:
+      db: { condition: service_healthy }
+
+  voice:
+    build: { context: ., dockerfile: apps/voice/Dockerfile }
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: ${COMPOSE_DATABASE_URL:-postgres://justcall:justcall-local-password@db:5432/justcall}
+      PORT: "8080"
+    ports: ["8080:8080"]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+
+  web:
+    build: { context: ., dockerfile: apps/web/Dockerfile }
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: ${COMPOSE_DATABASE_URL:-postgres://justcall:justcall-local-password@db:5432/justcall}
+      VOICE_INTERNAL_URL: http://voice:8080
+      PORT: "3000"
+    ports: ["3000:3000"]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+
+volumes:
+  pgdata:

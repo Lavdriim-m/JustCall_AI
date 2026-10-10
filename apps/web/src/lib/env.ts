@@ -17,10 +17,13 @@ export const env = {
     ).replace(/\/$/, "");
   },
   get internalSecret() {
-    return process.env.INTERNAL_API_SECRET || "dev-secret-change-me-please";
+    return requiredInProduction("INTERNAL_API_SECRET", "dev-secret-change-me-please");
   },
   get authSecret() {
-    return process.env.BETTER_AUTH_SECRET || "dev-auth-secret-change-me-please-0123456789";
+    return requiredInProduction(
+      "BETTER_AUTH_SECRET",
+      "dev-auth-secret-change-me-please-0123456789",
+    );
   },
   get cronSecret() {
     return process.env.CRON_SECRET ?? "";
@@ -29,3 +32,16 @@ export const env = {
     return process.env.NODE_ENV === "production";
   },
 };
+
+/** Development falls back to a fixed value; production refuses to run with a missing secret. */
+function requiredInProduction(name: string, devFallback: string): string {
+  const value = process.env[name];
+  if (value) return value;
+  if (
+    process.env.NODE_ENV === "production" &&
+    process.env.NEXT_PHASE !== "phase-production-build"
+  ) {
+    throw new Error(`${name} must be set in production (see .env.example).`);
+  }
+  return devFallback;
+}

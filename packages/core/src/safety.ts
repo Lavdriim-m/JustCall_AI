@@ -80,5 +80,10 @@ export function detectHumanRequest(utterance: string): boolean {
   const re1 = new RegExp(`\\b${person}\\b.*\\b${verb}\\b`);
   const re2 = new RegExp(`\\b${verb}\\b.*\\b${person}\\b`);
   const re3 = /\b(kein|keine|nid|nod|ned|nicht) (roboter|bot|maschine|computer|ki|ai)\b/;
-  return re1.test(t) || re2.test(t) || re3.test(t);
+  // "Chan ich de Chef ha?", "Isch de Chef da?", "Ich wett mit de Inhaberin"
+  const re4 =
+    /\b(de|den|dr|der|die|d|em|dem)\s+(chef|chefin|inhaber|inhaberin|besitzer|besitzerin|geschaftsfuhrer|geschaftsfuhrerin)\s+(ha|haa|haben|ane|bitte|da|do|dra|dran|am telefon)\b/;
+  const re5 =
+    /\b(isch|ist|wer isch|wo isch)\s+(de|der|die|d)\s+(chef|chefin|inhaber|inhaberin|besitzer|besitzerin)\b/;
+  return re1.test(t) || re2.test(t) || re3.test(t) || re4.test(t) || re5.test(t);
 }

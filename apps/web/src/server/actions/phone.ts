@@ -80,16 +80,14 @@ export async function connectNumber(
       })
       .where(eq(phoneNumbers.id, existing.id));
   } else {
-    await db
-      .insert(phoneNumbers)
-      .values({
-        e164,
-        restaurantId,
-        providerSid,
-        label: input.label ?? null,
-        forwardedFrom,
-        webhookConfiguredAt,
-      });
+    await db.insert(phoneNumbers).values({
+      e164,
+      restaurantId,
+      providerSid,
+      label: input.label ?? null,
+      forwardedFrom,
+      webhookConfiguredAt,
+    });
   }
   await audit(admin.id, "phone.connect", { restaurantId, data: { e164 } });
   refresh(restaurantId);

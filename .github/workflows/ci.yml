@@ -1,0 +1,90 @@
+name: CI
+
+on:
+  push:
+    branches: [main, "claude/**"]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Typecheck, unit & integration tests, build
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: justcall_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/justcall_test
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm --filter @justcall/voice build
+      - run: pnpm --filter @justcall/web build
+
+  e2e:
+    name: End-to-end (Playwright)
+    runs-on: ubuntu-latest
+    needs: test
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: justcall
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/justcall
+      APP_URL: http://localhost:3000
+      VOICE_PUBLIC_URL: http://localhost:8080
+      BETTER_AUTH_SECRET: ci-auth-secret-0123456789abcdef
+      INTERNAL_API_SECRET: ci-internal-secret-0123456789
+      CRON_SECRET: ci-cron-secret-0123456789
+      LLM_PROVIDER: demo
+      STT_PROVIDER: mock
+      TTS_PROVIDER: mock
+      TWILIO_VALIDATE_SIGNATURES: "false"
+      JOBS_ENABLED: "false"
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm db:migrate && pnpm db:seed
+      - run: pnpm --filter @justcall/voice build && pnpm --filter @justcall/web build
+      - name: Start servers
+        run: |
+          (cd apps/voice && node dist/index.js > ../../voice.log 2>&1 &)
+          (cd apps/web && pnpm start > ../../web.log 2>&1 &)
+          npx wait-on -t 60000 http://localhost:3000/api/health http://localhost:8080/health
+      - run: pnpm --filter @justcall/web exec playwright install --with-deps chromium
+      - run: pnpm --filter @justcall/web e2e
+      - if: failure()
+        run: tail -n 200 voice.log web.log

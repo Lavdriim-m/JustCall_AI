@@ -86,13 +86,11 @@ export async function acceptInvitation(
     role: invite.platformRole,
   });
   if (invite.restaurantId) {
-    await db
-      .insert(memberships)
-      .values({
-        userId: created.id,
-        restaurantId: invite.restaurantId,
-        role: invite.membershipRole ?? "staff",
-      });
+    await db.insert(memberships).values({
+      userId: created.id,
+      restaurantId: invite.restaurantId,
+      role: invite.membershipRole ?? "staff",
+    });
   }
   await db.update(invitations).set({ acceptedAt: new Date() }).where(eq(invitations.id, invite.id));
   await getAuth().api.signInEmail({

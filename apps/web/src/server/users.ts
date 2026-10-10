@@ -23,15 +23,13 @@ export async function createUserWithPassword(input: {
     await tx
       .insert(user)
       .values({ id, name: input.name.trim(), email, emailVerified: true, role: input.role });
-    await tx
-      .insert(account)
-      .values({
-        id: crypto.randomUUID(),
-        accountId: id,
-        providerId: "credential",
-        userId: id,
-        password: hash,
-      });
+    await tx.insert(account).values({
+      id: crypto.randomUUID(),
+      accountId: id,
+      providerId: "credential",
+      userId: id,
+      password: hash,
+    });
   });
   return { id, email };
 }
