@@ -8,8 +8,10 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
 /**
- * Alternative trigger for monthly invoice generation (e.g. Vercel Cron, GitHub Actions, any
- * scheduler). Idempotent: running it twice does not create duplicate invoices.
+ * Monthly invoice generation for setups that run the voice server with JOBS_ENABLED=false and use
+ * an external scheduler (GitHub Actions, cron) instead. Creates drafts and never sends them; do
+ * not run it alongside the voice job, which would then find the invoices already created and skip
+ * INVOICE_AUTO_SEND. Idempotent: running it twice does not create duplicate invoices.
  *   GET /api/cron/monthly-invoices?month=2026-09   Authorization: Bearer $CRON_SECRET
  */
 export async function GET(req: Request) {

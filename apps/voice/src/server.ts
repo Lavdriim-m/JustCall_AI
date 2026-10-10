@@ -15,6 +15,7 @@ export async function buildServer(opts: { config: Config; db: Database; logger: 
     ...opts,
     restaurants: new RestaurantCache(opts.db),
     registry: new CallRegistry(),
+    draining: false,
   };
   const app = Fastify({
     loggerInstance: opts.logger as FastifyBaseLogger,

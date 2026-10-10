@@ -1,11 +1,16 @@
-# Fly.io config for the voice server (alternative to Render).
-#   fly launch --no-deploy --copy-config --dockerfile apps/voice/Dockerfile   (from the repo root)
-#   fly secrets set DATABASE_URL=… OPENAI_API_KEY=… TWILIO_AUTH_TOKEN=… …
+# Fly.io config for the voice server (alternative to Render). From the repository root:
+#   fly launch --no-deploy --copy-config --config apps/voice/fly.toml
+#   fly secrets set --config apps/voice/fly.toml --stage DATABASE_URL=… OPENAI_API_KEY=… …
 #   fly deploy --config apps/voice/fly.toml --dockerfile apps/voice/Dockerfile .
+# App names are global on Fly: if "justcall-voice" is taken, change `app` below, and set
+# VOICE_PUBLIC_URL to https://<your-app-name>.fly.dev (or your custom domain).
+# fly launch / fly deploy create 2 machines by default (--ha=true); pass --ha=false for a single one.
 app = "justcall-voice"
 primary_region = "fra"
 kill_signal = "SIGTERM"
-kill_timeout = "30s"
+# Seconds Fly waits after SIGTERM before killing the machine (max 300), so running calls can finish
+# during a deploy. DRAIN_TIMEOUT_SECONDS in [env] must stay a few seconds below it.
+kill_timeout = 300
 
 [build]
   dockerfile = "Dockerfile"
@@ -16,6 +21,8 @@ kill_timeout = "30s"
 [env]
   PORT = "8080"
   NODE_ENV = "production"
+  DRAIN_TIMEOUT_SECONDS = "290"
+  TWILIO_SMS_FROM = "JustCall"
 
 [http_service]
   internal_port = 8080

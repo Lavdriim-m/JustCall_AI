@@ -6,31 +6,35 @@ export const metadata = { title: "Guides" };
 
 const steps = [
   {
-    title: "1. Create the restaurant",
-    body: "Restaurants → New restaurant. Fill in address, contact and the restaurant's public phone number. Set the commission under Billing (default comes from Settings).",
+    title: "1. Platform settings (once)",
+    body: "Settings → Company & invoicing: company name and address (the sender on every invoice), IBAN for the Swiss QR-bill, VAT number and VAT rate, invoice number prefix and payment terms. Also set the default commission and default monthly fee – new restaurants start with these values.",
   },
   {
-    title: "2. Add the menu",
-    body: 'Menu → Import: paste the menu text or upload a photo (AI), or use CSV. Then check every item: add aliases for everything callers say ("Combo 3", "Napoli", "Menü 3"), attach option groups (size, sauce, drink) and mark defaults. Use the "Test what callers might say" box.',
+    title: "2. Create the restaurant",
+    body: "Restaurants → New restaurant: restaurant name, city, public phone number (the number customers dial today), contact person and contact email. Then add legal name, street and number and postal code on the restaurant's Settings tab → General. Commission, fees and the billing address are on the Billing tab; commission and monthly fee start from the Settings defaults.",
   },
   {
-    title: "3. Opening hours, ordering & payment",
-    body: "Set opening hours (incl. late-night ranges and holidays), pickup/delivery, preparation time, delivery area and payment methods (cash / card / TWINT + optional TWINT link).",
+    title: "3. Add the menu",
+    body: 'Menu → Import: paste the menu text or upload a photo (AI, needs OPENAI_API_KEY), or use CSV. Then check every item: add aliases for everything callers say ("Combo 3", "Napoli", "Menü 3"), attach option groups (size, sauce, drink) and mark defaults. Use the "Test what callers might say" box.',
   },
   {
-    title: "4. Safety & transfer number",
-    body: "Enter the owner's mobile (or a second line) as transfer number. Calls mentioning allergies and requests for the owner are transferred there. It must not be the forwarded public number.",
+    title: "4. Opening hours, ordering & payment",
+    body: "Opening hours tab: weekly hours (ranges past midnight such as 17:00–02:00 are allowed) and holidays & exceptions. Settings tab → Ordering: pickup, delivery, preparation time, delivery fee, minimum order and delivery area. Settings → Payment: cash / card at the counter / TWINT, plus an optional TWINT payment link.",
   },
   {
-    title: "5. Test call",
-    body: "Test call tab: run through a full order in text mode, then in voice mode with a headset. Check the SMS preview and the order on the restaurant portal.",
+    title: "5. Safety & transfer number",
+    body: "Settings → Safety & transfers: enter the owner's mobile (or a second line) as transfer number. Calls mentioning allergies and requests for the owner are transferred there. It must not be the forwarded public number.",
   },
   {
-    title: "6. Connect the phone number",
+    title: "6. Test call",
+    body: "Check the greeting and voice under Settings → Voice assistant. Then on the Test call tab run through a full order in text mode, then in voice mode with a headset. Check the SMS preview and the order on the restaurant portal.",
+  },
+  {
+    title: "7. Connect the phone number",
     body: "Phone tab: connect a Twilio number (webhooks are configured automatically). Ask the restaurant to forward its number: overflow (busy / no answer) or always – codes are shown on the Phone tab.",
   },
   {
-    title: "7. Invite the restaurant & go live",
+    title: "8. Invite the restaurant & go live",
     body: "Team tab: invite the owner and staff. They get the live orders board (tablet at the counter, with sound), sold-out toggles and rush-hour waiting time. Then click Activate on the Overview tab.",
   },
 ];

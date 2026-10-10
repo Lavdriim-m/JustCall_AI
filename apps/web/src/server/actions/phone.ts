@@ -10,6 +10,7 @@ import {
   searchAvailableNumbers,
 } from "@justcall/services";
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 import { env } from "@/lib/env";
 import { audit } from "../audit";
 import { db } from "../db";
@@ -131,17 +132,23 @@ export async function reconfigureWebhooks(numberId: string): Promise<ActionResul
   }
 }
 
-export async function searchNumbersAction(input: {
-  type: "local" | "mobile" | "national";
-  contains?: string;
-}): Promise<ActionResult> {
+const searchSchema = z.object({
+  contains: z
+    .string()
+    .regex(/^\d{1,10}$/)
+    .optional(),
+});
+
+/** Searches Swiss local numbers – the only Swiss type that can receive calls. */
+export async function searchNumbersAction(input: { contains?: string }): Promise<ActionResult> {
   await requireAdmin();
+  const parsed = searchSchema.safeParse(input);
+  if (!parsed.success) return fail("Enter up to 10 digits to search for.");
   if (!isTwilioConfigured()) return fail("Twilio is not configured.");
   try {
     const numbers = await searchAvailableNumbers({
       country: "CH",
-      type: input.type,
-      contains: input.contains,
+      contains: parsed.data.contains,
       limit: 20,
     });
     return { ok: true, data: numbers };

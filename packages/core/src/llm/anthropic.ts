@@ -1,9 +1,10 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type {
+  ContentBlockParam,
+  MessageCreateParamsBase,
   MessageParam,
   Tool,
   ToolResultBlockParam,
-  ContentBlockParam,
 } from "@anthropic-ai/sdk/resources/messages";
 import {
   LlmError,
@@ -21,6 +22,72 @@ export type AnthropicLlmOptions = {
   /** Custom fetch (tests, proxies). */
   fetch?: typeof fetch;
 };
+
+/**
+ * Optional request fields that not every Claude model accepts. The adapter sends them where they
+ * help phone latency and drops one for good (per model) when the API rejects it with a 400:
+ * - `temperature`: Claude 4.7 and later (Haiku 5.5 included) reject any non-default value.
+ * - `thinking`: `{type: "disabled"}`. Haiku 5.5 would otherwise think at effort `medium`, which adds
+ *   latency and counts toward `max_tokens`; Opus 5.5, Sonnet 5.5 and Fable reject it.
+ * - `effort`: `output_config: {effort: "low"}`. Haiku 4.5, Sonnet 4.5 and older reject it.
+ */
+type OptionalField = "temperature" | "thinking" | "effort";
+
+/** Effort for phone turns: short, fast replies; the conversation logic lives in code. */
+const PHONE_EFFORT = "low";
+
+/** Output cap when the model may think before it speaks (thinking counts toward `max_tokens`). */
+const MIN_TOKENS_WITH_THINKING = 2000;
+
+const REJECTION_PATTERN: Record<OptionalField, RegExp> = {
+  temperature: /temperature/i,
+  thinking: /thinking/i,
+  effort: /effort|output_config/i,
+};
+
+/**
+ * Fields not to send, per model id. Module-level so every AnthropicLlm shares it: the voice server
+ * creates a client per call, so a per-instance flag would cost each call's first turn a failed
+ * request. Seeded from the model families documented to reject a field, then extended whenever the
+ * API rejects one.
+ */
+const skippedFieldsByModel = new Map<string, Set<OptionalField>>();
+
+function skippedFields(model: string): Set<OptionalField> {
+  let skipped = skippedFieldsByModel.get(model);
+  if (!skipped) {
+    skipped = knownUnsupportedFields(model);
+    skippedFieldsByModel.set(model, skipped);
+  }
+  return skipped;
+}
+
+/**
+ * Fields the model is documented to reject (or, for `thinking` on Opus 5 and Sonnet 5, to mishandle:
+ * with thinking disabled Opus 5 can write a tool call into its spoken text and Sonnet 5 reaches for
+ * tools less often, so both keep adaptive thinking at low effort). Unknown ids return an empty set and are
+ * learned from the API's 400s instead.
+ */
+function knownUnsupportedFields(model: string): Set<OptionalField> {
+  const id = model.toLowerCase();
+  if (/claude-(?:fable|mythos)/.test(id)) return new Set(["temperature", "thinking"]);
+  const match = /claude-(opus|sonnet|haiku)-(\d+)(?:-(\d{1,2}))?(?!\d)/.exec(id);
+  if (!match) return new Set();
+  const family = match[1];
+  const version = Number(match[2]) * 100 + Number(match[3] ?? 0);
+  const skipped = new Set<OptionalField>();
+  if (version >= 407) skipped.add("temperature");
+  if ((family === "opus" || family === "sonnet") && version >= 500) skipped.add("thinking");
+  if (version < 405 || (version === 405 && family !== "opus")) skipped.add("effort");
+  return skipped;
+}
+
+/** The optional field a 400 complains about, if the request sent it. */
+function rejectedField(err: unknown, sent: OptionalField[]): OptionalField | null {
+  const cause = err instanceof LlmError ? err.cause : err;
+  if (!(cause instanceof Anthropic.BadRequestError)) return null;
+  return sent.find((field) => REJECTION_PATTERN[field].test(cause.message)) ?? null;
+}
 
 /** Anthropic Messages API adapter (Claude) with prompt caching and streaming text. */
 export class AnthropicLlm implements LlmClient {
@@ -90,45 +157,57 @@ export class AnthropicLlm implements LlmClient {
     return out;
   }
 
-  /** Set when the model rejected `temperature` (some newer models fix sampling parameters). */
-  private omitTemperature = false;
-
   async complete(request: LlmRequest): Promise<LlmResponse> {
-    try {
-      return await this.run(request);
-    } catch (err) {
-      if (
-        !this.omitTemperature &&
-        err instanceof LlmError &&
-        err.cause instanceof Anthropic.APIError &&
-        err.cause.status === 400 &&
-        /temperature/i.test(err.message)
-      ) {
-        this.omitTemperature = true;
-        return this.run(request);
+    const skipped = skippedFields(this.model);
+    // Each rejection removes one more field, so this retries at most once per optional field.
+    for (;;) {
+      const { body, sent } = this.buildBody(request, skipped);
+      try {
+        return await this.run(request, body);
+      } catch (err) {
+        const field = rejectedField(err, sent);
+        if (!field) throw err;
+        skipped.add(field);
       }
-      throw err;
     }
   }
 
-  private async run(request: LlmRequest): Promise<LlmResponse> {
-    const tools: Tool[] = request.tools.map((t) => ({
-      name: t.name,
-      description: t.description,
-      input_schema: t.parameters as Tool["input_schema"],
-    }));
+  private buildBody(
+    request: LlmRequest,
+    skipped: ReadonlySet<OptionalField>,
+  ): { body: MessageCreateParamsBase; sent: OptionalField[] } {
+    const sent: OptionalField[] = [];
+    const thinkingOff = !skipped.has("thinking");
+    const maxTokens = request.maxTokens ?? 400;
+    const body: MessageCreateParamsBase = {
+      model: this.model,
+      max_tokens: thinkingOff ? maxTokens : Math.max(maxTokens * 4, MIN_TOKENS_WITH_THINKING),
+      system: [{ type: "text", text: request.system, cache_control: { type: "ephemeral" } }],
+      tools: request.tools.map((t): Tool => ({
+        name: t.name,
+        description: t.description,
+        input_schema: t.parameters as Tool["input_schema"],
+      })),
+      messages: this.toMessages(request),
+    };
+    if (request.temperature !== undefined && !skipped.has("temperature")) {
+      body.temperature = request.temperature;
+      sent.push("temperature");
+    }
+    if (thinkingOff) {
+      body.thinking = { type: "disabled" };
+      sent.push("thinking");
+    }
+    if (!skipped.has("effort")) {
+      body.output_config = { effort: PHONE_EFFORT };
+      sent.push("effort");
+    }
+    return { body, sent };
+  }
+
+  private async run(request: LlmRequest, body: MessageCreateParamsBase): Promise<LlmResponse> {
     try {
-      const stream = this.client.messages.stream(
-        {
-          model: this.model,
-          max_tokens: request.maxTokens ?? 400,
-          temperature: this.omitTemperature ? undefined : request.temperature,
-          system: [{ type: "text", text: request.system, cache_control: { type: "ephemeral" } }],
-          tools,
-          messages: this.toMessages(request),
-        },
-        { signal: request.signal },
-      );
+      const stream = this.client.messages.stream(body, { signal: request.signal });
       stream.on("text", (delta) => request.onTextDelta?.(delta));
       const final = await stream.finalMessage();
       let text = "";

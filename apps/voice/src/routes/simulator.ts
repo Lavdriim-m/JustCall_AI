@@ -5,6 +5,7 @@ import type { FastifyInstance } from "fastify";
 import type { WebSocket } from "ws";
 import { CallPersistence } from "../call/persistence";
 import { CallSession, type CallTransport } from "../call/session";
+import { internalApiSecret } from "../config";
 import type { AppContext } from "../context";
 import { getTtsProvider } from "../tts";
 
@@ -21,10 +22,7 @@ export function registerSimulatorRoutes(app: FastifyInstance, ctx: AppContext) {
   app.get("/sim", { websocket: true }, (socket: WebSocket, req) => {
     const token = (req.query as Record<string, string>).token ?? "";
     // Listeners must be attached synchronously, otherwise the client's first message can be lost.
-    const verified = verifyToken<SimToken>(
-      token,
-      config.INTERNAL_API_SECRET || "dev-secret-change-me-please",
-    ).then((p) => {
+    const verified = verifyToken<SimToken>(token, internalApiSecret(config)).then((p) => {
       if (!p || p.purpose !== "simulator") {
         socket.send(
           JSON.stringify({ type: "error", message: "Ungültiges oder abgelaufenes Token" }),

@@ -23,7 +23,10 @@ JustCall: AI phone ordering for Swiss restaurants. pnpm monorepo, TypeScript str
 - `pnpm db:generate` after schema changes (commit the generated SQL), `pnpm db:migrate`.
 - `pnpm eval` – conversation evals against the configured LLM.
 - E2E: start servers with `LLM_PROVIDER=demo STT_PROVIDER=mock TTS_PROVIDER=mock`, seeded DB, then
-  `pnpm --filter @justcall/web e2e`.
+  `pnpm --filter @justcall/web e2e`. Install the browser once first (CI does the same):
+  `pnpm --filter @justcall/web exec playwright install --with-deps chromium`, or set
+  `PW_CHROMIUM_PATH` to an installed Chromium. Optional: `E2E_BASE_URL`, `E2E_EMAIL`,
+  `E2E_PASSWORD`, `E2E_SCREENSHOTS`.
 
 ## Conventions
 
@@ -33,6 +36,9 @@ JustCall: AI phone ordering for Swiss restaurants. pnpm monorepo, TypeScript str
 - Prompts are German (Swiss spelling, no "ß"); UI: admin English, restaurant portal German.
 - Every server action validates input with zod and checks access via `requireAdmin` /
   `requireRestaurantAccess`; call `invalidateVoiceCache` after restaurant/menu changes.
-- Env vars are documented in `.env.example` – add new ones there and in `docs/SETUP.md`.
+- Runtime env vars are documented in `.env.example` and in the "Environment variable reference" table
+  at the end of `docs/SETUP.md` (service, code default, purpose) – add new ones to both. Variables set
+  by the platform or used only by tests/tooling (`NODE_ENV`, `NEXT_*`, `TEST_DATABASE_URL`, `E2E_*`,
+  `PW_CHROMIUM_PATH`) go only in the SETUP table.
 - In the cloud sandbox, unset the preset `DATABASE_URL`/`OPENAI_API_KEY`/`LLM_PROVIDER` when running
   locally (`env -u …`) because Node's `--env-file` does not override existing variables.

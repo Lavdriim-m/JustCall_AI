@@ -17,7 +17,7 @@ export type OpenAiLlmOptions = {
   apiKey: string;
   model: string;
   baseURL?: string;
-  /** For reasoning models (gpt-5 family, o-series): "none" | "minimal" | "low" … */
+  /** Reasoning models (gpt-5.x, gpt-6, o-series): "none" (recommended) | "low" | "medium"; "minimal" only on gpt-5 / gpt-5-mini / gpt-5-nano. */
   reasoningEffort?: string;
   timeoutMs?: number;
   /** Custom fetch (tests, proxies). */

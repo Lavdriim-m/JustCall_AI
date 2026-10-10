@@ -8,6 +8,8 @@ export default async function MenuPage({ params }: { params: Promise<{ id: strin
   const access = await getRestaurantAccess(id);
   if (!access) notFound();
   const data = await loadEditorMenu(access.restaurant.id);
-  const aiAvailable = Boolean(process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY.length > 20);
+  const aiAvailable = Boolean(
+    process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY.length >= 20,
+  );
   return <MenuEditor restaurantId={access.restaurant.id} data={data} aiAvailable={aiAvailable} />;
 }

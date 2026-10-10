@@ -25,7 +25,7 @@ import {
 } from "@justcall/services";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import type { WebSocket } from "ws";
-import { wsUrl } from "../config";
+import { internalApiSecret, wsUrl } from "../config";
 import { CallPersistence } from "../call/persistence";
 import { CallSession, type CallTransport } from "../call/session";
 import type { AppContext } from "../context";
@@ -81,6 +81,13 @@ export function registerTwilioRoutes(app: FastifyInstance, ctx: AppContext) {
       return xml(`${say("Diese Nummer ist zurzeit nicht in Betrieb. Auf Wiederhören.")}<Hangup/>`);
     }
 
+    // Shutting down for a deploy and nobody to forward to: Twilio then uses the number's fallback
+    // URL (the web app), which forwards the caller to the restaurant.
+    if (ctx.draining && !restaurant.transferPhone) {
+      logger.warn({ to }, "call during shutdown – handing over to the fallback URL");
+      return reply.code(503).type("text/plain").send("shutting down");
+    }
+
     const call = await createCall(db, {
       restaurantId: restaurant.id,
       phoneNumberId: match.phoneNumber.id,
@@ -97,6 +104,17 @@ export function registerTwilioRoutes(app: FastifyInstance, ctx: AppContext) {
         .limit(1);
       return existing!;
     });
+
+    // Shutting down for a deploy: forward new calls to staff so running calls can finish.
+    if (ctx.draining && restaurant.transferPhone) {
+      await updateCall(db, call.id, {
+        status: "transferred",
+        outcome: "transferred_other",
+        transferReason: "technical",
+        transferTarget: restaurant.transferPhone,
+      });
+      return xml(`<Dial timeout="25">${esc(restaurant.transferPhone)}</Dial>`);
+    }
 
     // Bot switched off by the restaurant (busy/paused): forward straight to staff when possible.
     if (
@@ -116,7 +134,7 @@ export function registerTwilioRoutes(app: FastifyInstance, ctx: AppContext) {
 
     const token = await signToken(
       { callId: call.id, sid: body.CallSid },
-      config.INTERNAL_API_SECRET || "dev-secret-change-me-please",
+      internalApiSecret(config),
       3600,
     );
     const streamUrl = wsUrl(publicBase, "/twilio/stream");
@@ -239,7 +257,7 @@ export function registerTwilioRoutes(app: FastifyInstance, ctx: AppContext) {
           const params = (msg.start?.customParameters ?? {}) as Record<string, string>;
           const payload = await verifyToken<{ callId: string; sid: string }>(
             params.token ?? "",
-            config.INTERNAL_API_SECRET || "dev-secret-change-me-please",
+            internalApiSecret(config),
           );
           if (!payload || payload.callId !== params.callId) {
             logger.warn("media stream with invalid token");

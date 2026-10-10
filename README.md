@@ -40,34 +40,44 @@ Requirements: Node.js 22, pnpm 10, PostgreSQL 15+ (or Docker).
 ```bash
 pnpm install
 cp .env.example .env
-# set DATABASE_URL, and for a keyless demo: LLM_PROVIDER=demo STT_PROVIDER=mock TTS_PROVIDER=mock TWILIO_VALIDATE_SIGNATURES=false
+# in .env: set DATABASE_URL, and for a keyless demo LLM_PROVIDER=demo STT_PROVIDER=mock TTS_PROVIDER=mock
 pnpm db:migrate
 pnpm db:seed          # demo restaurant "Pizzeria Bella Vista"
 pnpm dev              # web http://localhost:3000 · voice server http://localhost:8080
 ```
 
-Open <http://localhost:3000> → create the admin account → Restaurants → _Pizzeria Bella Vista_ →
-**Test call**. Add an `OPENAI_API_KEY` (and `LLM_PROVIDER=openai`) to talk to the real assistant.
+With `pnpm dev` the secrets in `.env` can stay empty: in development the web app and the voice server
+share a built-in (insecure) fallback. Production, including the Docker images, requires them.
 
-Everything with Docker instead: `docker compose up -d --build`.
+Open <http://localhost:3000> → create the admin account → Restaurants → _Pizzeria Bella Vista_ →
+**Test call**. Add an `OPENAI_API_KEY` (and `LLM_PROVIDER=openai`) to talk to the real assistant
+(default model `gpt-5.4-mini`; see [SETUP](docs/SETUP.md#2-openai--the-language-model) for the
+alternatives).
+
+Everything with Docker instead: the images run in production mode, so set `BETTER_AUTH_SECRET` and
+`INTERNAL_API_SECRET` (`openssl rand -base64 32` each) and `POSTGRES_PASSWORD` (letters and digits) in
+`.env`, then `docker compose up -d --build` and, for the demo restaurant,
+`docker compose run --rm migrate pnpm --filter @justcall/db seed`.
 
 ## Going live
 
 1. [docs/SETUP.md](docs/SETUP.md) – create the accounts (Supabase, OpenAI, Twilio, AWS, email) and fill
-   in the environment variables.
-2. [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) – deploy (Vercel + Render/Fly.io, or your own server).
+   in the environment variables. Start the slow approvals first: Twilio Business profile and Swiss
+   number bundle, AWS quota increases.
+2. [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) – deploy (Vercel Pro + Render/Fly.io, or your own server).
+   Monthly invoices run inside the voice server; there is no Vercel cron.
 3. `pnpm doctor` – verifies every integration.
-4. Admin → _Guides_ – onboard the first restaurant.
+4. Admin → _Settings_ (company address, IBAN) and _Guides_ – onboard the first restaurant.
 
 ## Documentation
 
-| Document                                           | Contents                                                          |
-| -------------------------------------------------- | ----------------------------------------------------------------- |
-| [SETUP](docs/SETUP.md)                             | External services step by step, model choice, keys                |
-| [DEPLOYMENT](docs/DEPLOYMENT.md)                   | Hosting options, scaling, upgrades                                |
-| [ARCHITECTURE](docs/ARCHITECTURE.md)               | Components, call flow, data model, security, extending            |
-| [CONVERSATION_DESIGN](docs/CONVERSATION_DESIGN.md) | Call flow, safety rules, prompts, tools                           |
-| [OPERATIONS](docs/OPERATIONS.md)                   | Daily use, billing, capacity, costs, monitoring, privacy, support |
+| Document                                           | Contents                                                               |
+| -------------------------------------------------- | ---------------------------------------------------------------------- |
+| [SETUP](docs/SETUP.md)                             | External services step by step, model choice, keys, variable reference |
+| [DEPLOYMENT](docs/DEPLOYMENT.md)                   | Hosting options, scaling, upgrades                                     |
+| [ARCHITECTURE](docs/ARCHITECTURE.md)               | Components, call flow, data model, security, extending                 |
+| [CONVERSATION_DESIGN](docs/CONVERSATION_DESIGN.md) | Call flow, safety rules, prompts, tools                                |
+| [OPERATIONS](docs/OPERATIONS.md)                   | Daily use, billing, capacity, costs, monitoring, privacy, support      |
 
 ## Repository
 
@@ -81,18 +91,19 @@ packages/services Twilio, email, SMS text, invoice PDFs
 
 ## Scripts
 
-| Command                                                     |                                                                                 |
-| ----------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| `pnpm dev`                                                  | Web + voice server with hot reload                                              |
-| `pnpm test`                                                 | Unit and integration tests (voice tests need a Postgres at `TEST_DATABASE_URL`) |
-| `pnpm typecheck` / `pnpm lint`                              | Types / formatting                                                              |
-| `pnpm build`                                                | Production builds                                                               |
-| `pnpm db:migrate` / `db:generate` / `db:seed` / `db:studio` | Database                                                                        |
-| `pnpm doctor`                                               | Check all external integrations                                                 |
-| `pnpm eval`                                                 | Scripted Swiss German conversations against the configured model                |
-| `pnpm --filter @justcall/voice chat -- <slug>`              | Talk to a restaurant's assistant in the terminal                                |
-| `pnpm admin:create --email you@example.ch`                  | Create/promote an administrator                                                 |
-| `pnpm --filter @justcall/web e2e`                           | Playwright end-to-end test (servers must run)                                   |
+| Command                                                                    |                                                                                 |
+| -------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `pnpm dev`                                                                 | Web + voice server with hot reload                                              |
+| `pnpm test`                                                                | Unit and integration tests (voice tests need a Postgres at `TEST_DATABASE_URL`) |
+| `pnpm typecheck` / `pnpm lint`                                             | Types / formatting                                                              |
+| `pnpm build`                                                               | Production builds                                                               |
+| `pnpm db:migrate` / `db:generate` / `db:seed` / `db:studio`                | Database                                                                        |
+| `pnpm doctor`                                                              | Check all external integrations                                                 |
+| `pnpm eval`                                                                | Scripted Swiss German conversations against the configured model                |
+| `pnpm --filter @justcall/voice chat -- <slug>`                             | Talk to a restaurant's assistant in the terminal                                |
+| `pnpm admin:create --email you@example.ch`                                 | Create/promote an administrator                                                 |
+| `pnpm --filter @justcall/web e2e`                                          | Playwright end-to-end test (servers must run)                                   |
+| `pnpm --filter @justcall/web exec playwright install --with-deps chromium` | Install the browser for the e2e test once (or set `PW_CHROMIUM_PATH`)           |
 
 ## License
 

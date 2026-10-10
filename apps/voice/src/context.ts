@@ -31,4 +31,6 @@ export type AppContext = {
   logger: Logger;
   restaurants: RestaurantCache;
   registry: CallRegistry;
+  /** Set on SIGTERM: new calls are handed to the restaurant while running calls finish. */
+  draining: boolean;
 };

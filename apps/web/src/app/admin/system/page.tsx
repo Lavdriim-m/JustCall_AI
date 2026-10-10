@@ -61,26 +61,27 @@ export default async function SystemPage() {
       ? `${process.env.SMTP_HOST} as ${process.env.EMAIL_FROM}`
       : "Not configured – emails are written to the server log.",
   });
-  const llmProvider = process.env.LLM_PROVIDER ?? "openai";
-  const llmKey =
-    llmProvider === "anthropic" ? process.env.ANTHROPIC_API_KEY : process.env.OPENAI_API_KEY;
+  // The web app's only LLM feature is AI menu import (server/actions/ai-menu.ts), which always uses
+  // OpenAI regardless of LLM_PROVIDER. Keys under 20 characters are placeholders (as in core/llm).
+  const openAiKey = process.env.OPENAI_API_KEY ?? "";
+  const menuModel = process.env.OPENAI_MENU_MODEL || process.env.OPENAI_MODEL || "gpt-5.4-mini";
   checks.push({
     name: "Language model (web)",
-    state: llmProvider === "demo" ? "off" : llmKey && llmKey.length > 20 ? "ok" : "warn",
+    state: openAiKey.length >= 20 ? "ok" : openAiKey ? "warn" : "off",
     detail:
-      llmProvider === "demo"
-        ? "Demo mode (rule-based) – set LLM_PROVIDER=openai and OPENAI_API_KEY for real conversations."
-        : `${llmProvider} · ${llmProvider === "anthropic" ? (process.env.ANTHROPIC_MODEL ?? "claude-haiku-5-5") : (process.env.OPENAI_MODEL ?? "gpt-5.4-mini")} · key ${llmKey ? "set" : "missing"} (used for AI menu import; calls use the voice server's settings)`,
+      openAiKey.length >= 20
+        ? `OpenAI · ${menuModel} · used for AI menu import (OPENAI_MENU_MODEL, else OPENAI_MODEL); calls use the voice server's settings.`
+        : `${openAiKey ? "OPENAI_API_KEY looks like a placeholder" : "Not configured"} – AI menu import is unavailable (CSV and JSON import still work). It needs OPENAI_API_KEY even when calls use another LLM_PROVIDER.`,
   });
   checks.push({
     name: "Secrets",
-    state:
-      process.env.BETTER_AUTH_SECRET && process.env.INTERNAL_API_SECRET && process.env.CRON_SECRET
-        ? "ok"
-        : "warn",
-    detail: ["BETTER_AUTH_SECRET", "INTERNAL_API_SECRET", "CRON_SECRET"]
-      .map((k) => `${k} ${process.env[k] ? "✓" : "missing"}`)
-      .join(" · "),
+    state: process.env.BETTER_AUTH_SECRET && process.env.INTERNAL_API_SECRET ? "ok" : "warn",
+    detail: [
+      ...["BETTER_AUTH_SECRET", "INTERNAL_API_SECRET"].map(
+        (k) => `${k} ${process.env[k] ? "✓" : "missing"}`,
+      ),
+      `CRON_SECRET ${process.env.CRON_SECRET ? "✓" : "not set (only needed for an external invoice scheduler)"}`,
+    ].join(" · "),
   });
   checks.push({
     name: "Public URLs",
@@ -119,9 +120,11 @@ export default async function SystemPage() {
           <p>
             <strong>Monthly invoices</strong> – 1st of each month, 06:00 Europe/Zurich, created as
             drafts by the voice server (<Kbd>JOBS_ENABLED=true</Kbd>). Automatic sending:{" "}
-            <Kbd>INVOICE_AUTO_SEND=true</Kbd>. Alternative trigger:{" "}
+            <Kbd>INVOICE_AUTO_SEND=true</Kbd>. Only if the voice server runs with{" "}
+            <Kbd>JOBS_ENABLED=false</Kbd>: an external scheduler may call{" "}
             <Kbd>GET /api/cron/monthly-invoices</Kbd> with{" "}
-            <Kbd>Authorization: Bearer CRON_SECRET</Kbd>.
+            <Kbd>Authorization: Bearer CRON_SECRET</Kbd> (creates drafts, never sends). Do not run
+            both.
           </p>
           <p>
             <strong>Daily maintenance</strong> – 03:15: closes stale calls and deletes transcripts

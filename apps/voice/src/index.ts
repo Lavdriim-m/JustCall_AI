@@ -43,6 +43,8 @@ async function main() {
   const shutdown = async (signal: string) => {
     if (shuttingDown) return;
     shuttingDown = true;
+    // Stop taking new calls (they are forwarded to the restaurant) so the drain can finish early.
+    ctx.draining = true;
     logger.info(
       { signal, activeCalls: ctx.registry.size },
       "shutting down – draining active calls",

@@ -12,7 +12,6 @@ type Found = { phoneNumber: string; locality: string | null; region: string | nu
 
 export function BuyNumber({ restaurants }: { restaurants: { id: string; name: string }[] }) {
   const router = useRouter();
-  const [type, setType] = useState<"local" | "mobile" | "national">("local");
   const [contains, setContains] = useState("");
   const [results, setResults] = useState<Found[]>([]);
   const [restaurantId, setRestaurantId] = useState("");
@@ -20,19 +19,10 @@ export function BuyNumber({ restaurants }: { restaurants: { id: string; name: st
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-2">
-        <Select
-          value={type}
-          onChange={(e) => setType(e.target.value as typeof type)}
-          className="w-40"
-        >
-          <option value="local">Local (044, 031 …)</option>
-          <option value="national">National (058 …)</option>
-          <option value="mobile">Mobile (07x)</option>
-        </Select>
         <Input
           value={contains}
           onChange={(e) => setContains(e.target.value)}
-          placeholder="Contains digits, e.g. 4144"
+          placeholder="Local number containing, e.g. 4144"
           className="w-56"
         />
         <Button
@@ -40,7 +30,6 @@ export function BuyNumber({ restaurants }: { restaurants: { id: string; name: st
           onClick={() =>
             start(async () => {
               const res = await searchNumbersAction({
-                type,
                 contains: contains.replace(/\D/g, "") || undefined,
               });
               if (res?.error) toast.error(res.error);

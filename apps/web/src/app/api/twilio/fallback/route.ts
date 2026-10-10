@@ -19,6 +19,15 @@ function esc(s: string) {
 }
 
 /**
+ * TWILIO_VALIDATE_SIGNATURES, parsed like the voice server's config (apps/voice/src/config.ts):
+ * unset or empty = on; otherwise only 1/true/yes/on (any case) keep validation on.
+ */
+function validateSignatures(): boolean {
+  const v = process.env.TWILIO_VALIDATE_SIGNATURES;
+  return v === undefined || v === "" || ["1", "true", "yes", "on"].includes(v.toLowerCase());
+}
+
+/**
  * Twilio "voice fallback URL": called when the voice server does not answer. Forwards the caller
  * directly to the restaurant so no call is lost, and records the incident in the call log.
  */
@@ -27,7 +36,7 @@ export async function POST(req: Request) {
     string,
     string
   >;
-  if (process.env.TWILIO_VALIDATE_SIGNATURES !== "false") {
+  if (validateSignatures()) {
     const ok = validateTwilioSignature(
       req.headers.get("x-twilio-signature") ?? undefined,
       `${env.appUrl}/api/twilio/fallback`,

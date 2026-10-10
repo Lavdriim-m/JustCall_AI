@@ -66,6 +66,22 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
   return schema.parse(cleaned);
 }
 
+/** Insecure secret used when INTERNAL_API_SECRET is unset outside production (same as the web app). */
+export const DEV_INTERNAL_API_SECRET = "dev-secret-change-me-please";
+
+/**
+ * The secret shared with the web app: bearer token for /internal/* calls and key for signed
+ * media-stream/simulator tokens. Outside production an unset INTERNAL_API_SECRET falls back to
+ * DEV_INTERNAL_API_SECRET, which is what apps/web/src/lib/env.ts sends in that case. In production
+ * it returns "" so that nothing is accepted (index.ts refuses to start without the secret anyway).
+ */
+export function internalApiSecret(
+  config: Pick<Config, "INTERNAL_API_SECRET" | "NODE_ENV">,
+): string {
+  if (config.INTERNAL_API_SECRET) return config.INTERNAL_API_SECRET;
+  return config.NODE_ENV === "production" ? "" : DEV_INTERNAL_API_SECRET;
+}
+
 export function wsUrl(httpUrl: string, path: string): string {
   const base = httpUrl.replace(/\/$/, "").replace(/^http/, "ws");
   return `${base}${path}`;

@@ -23,6 +23,7 @@ const { createDb, calls, orders, orderItems, callEvents, eq, asc } = await impor
 const { db, client } = createDb({ url: TEST_DB_URL, max: 4 });
 let baseUrl = "";
 let app: Awaited<ReturnType<typeof buildServer>>["app"];
+let ctx: Awaited<ReturnType<typeof buildServer>>["ctx"];
 
 beforeAll(async () => {
   await resetTestDatabase();
@@ -36,7 +37,7 @@ beforeAll(async () => {
     JOBS_ENABLED: "false",
     LOG_LEVEL: "warn",
   });
-  ({ app } = await buildServer({ config, db, logger: createLogger("warn") }));
+  ({ app, ctx } = await buildServer({ config, db, logger: createLogger("warn") }));
   await app.listen({ port: 0, host: "127.0.0.1" });
   baseUrl = `http://127.0.0.1:${(app.server.address() as AddressInfo).port}`;
 });
@@ -203,6 +204,31 @@ describe("phone call over Twilio media streams", () => {
     const call = await placeCall("+41445550003");
     expect(call.twiml).toContain("<Dial");
     expect(call.twiml).toContain("+41791112233");
+  });
+
+  it("forwards new calls while the server drains for a deploy", async () => {
+    await createTestRestaurant("+41445550004");
+    await createTestRestaurant("+41445550005", { transferPhone: null });
+    ctx.draining = true;
+    try {
+      const call = await placeCall("+41445550004");
+      expect(call.twiml).toContain("<Dial");
+      expect(call.twiml).toContain("+41791112233");
+      const noTarget = await fetch(`${baseUrl}/twilio/voice`, {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          CallSid: "CAdrain0001",
+          From: "+41791234567",
+          To: "+41445550005",
+        }),
+      });
+      expect(noTarget.status).toBe(503);
+      expect((await fetch(`${baseUrl}/health`)).status).toBe(503);
+    } finally {
+      ctx.draining = false;
+    }
+    expect((await fetch(`${baseUrl}/health`)).status).toBe(200);
   });
 
   it("rejects calls to unknown numbers", async () => {

@@ -115,11 +115,10 @@ async function main() {
   });
 
   await check("Secrets", async () => {
-    const missing = ["INTERNAL_API_SECRET", "BETTER_AUTH_SECRET", "CRON_SECRET"].filter(
-      (k) => !env[k] || env[k]!.length < 16,
-    );
-    if (missing.length) throw new Error(`missing or too short: ${missing.join(", ")}`);
-    return "set";
+    // The voice server only reads INTERNAL_API_SECRET; the others belong to the web app.
+    const secret = env.INTERNAL_API_SECRET;
+    if (!secret || secret.length < 16) throw new Error("INTERNAL_API_SECRET missing or too short");
+    return "INTERNAL_API_SECRET set (must match the web app)";
   });
 
   console.log("\nJustCall integration check\n");

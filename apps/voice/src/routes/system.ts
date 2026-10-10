@@ -3,20 +3,26 @@ import type { FastifyInstance, FastifyRequest } from "fastify";
 import { normalizeForSpeech } from "@justcall/core";
 import type { AppContext } from "../context";
 import { pcm16ToWav, mulawToPcm16 } from "../audio/codec";
+import { internalApiSecret } from "../config";
 import { getTtsProvider } from "../tts";
 
 export function registerSystemRoutes(app: FastifyInstance, ctx: AppContext) {
   const { config, db } = ctx;
 
-  app.get("/health", async () => ({
-    ok: true,
-    service: "justcall-voice",
-    activeCalls: ctx.registry.size,
-    uptimeSeconds: Math.round(process.uptime()),
-    stt: config.STT_PROVIDER,
-    tts: config.TTS_PROVIDER,
-    llm: process.env.LLM_PROVIDER ?? "openai",
-  }));
+  app.get("/health", async (_req, reply) => {
+    const body = {
+      ok: !ctx.draining,
+      draining: ctx.draining,
+      service: "justcall-voice",
+      activeCalls: ctx.registry.size,
+      uptimeSeconds: Math.round(process.uptime()),
+      stt: config.STT_PROVIDER,
+      tts: config.TTS_PROVIDER,
+      llm: process.env.LLM_PROVIDER ?? "openai",
+    };
+    // 503 while draining so load balancers stop sending new calls to this instance.
+    return ctx.draining ? reply.code(503).send(body) : body;
+  });
 
   app.get("/ready", async (_req, reply) => {
     try {
@@ -27,9 +33,11 @@ export function registerSystemRoutes(app: FastifyInstance, ctx: AppContext) {
     }
   });
 
+  /** Requests from the web app. Without INTERNAL_API_SECRET, development accepts the dev fallback. */
   const internal = (req: FastifyRequest) => {
+    const secret = internalApiSecret(config);
     const auth = req.headers.authorization ?? "";
-    return Boolean(config.INTERNAL_API_SECRET) && auth === `Bearer ${config.INTERNAL_API_SECRET}`;
+    return secret !== "" && auth === `Bearer ${secret}`;
   };
 
   /** Called by the web app after menu/settings changes so live calls pick them up immediately. */

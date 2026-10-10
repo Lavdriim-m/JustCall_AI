@@ -95,10 +95,13 @@ export async function configureNumberWebhooks(
   });
 }
 
+/**
+ * Searches local numbers that can receive calls. Swiss mobile numbers are SMS-only and Twilio has
+ * no national type for Switzerland, so local is the only type a restaurant can use.
+ */
 export async function searchAvailableNumbers(
   opts: {
     country?: string;
-    type?: "local" | "mobile" | "national";
     contains?: string;
     limit?: number;
   },
@@ -111,12 +114,7 @@ export async function searchAvailableNumbers(
     contains: opts.contains || undefined,
     limit: opts.limit ?? 20,
   };
-  const list =
-    opts.type === "mobile"
-      ? await country.mobile.list(params)
-      : opts.type === "national"
-        ? await country.national.list(params)
-        : await country.local.list(params);
+  const list = await country.local.list(params);
   return list.map((n) => ({
     phoneNumber: n.phoneNumber,
     friendlyName: n.friendlyName,
