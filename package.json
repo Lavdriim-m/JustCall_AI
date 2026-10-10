@@ -1,0 +1,32 @@
+{
+  "name": "justcall",
+  "private": true,
+  "version": "1.0.0",
+  "description": "JustCall – AI phone ordering for restaurants (Swiss German)",
+  "packageManager": "pnpm@10.28.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "pnpm --parallel --filter @justcall/web --filter @justcall/voice dev",
+    "dev:web": "pnpm --filter @justcall/web dev",
+    "dev:voice": "pnpm --filter @justcall/voice dev",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "lint": "prettier --check .",
+    "format": "prettier --write .",
+    "db:generate": "pnpm --filter @justcall/db generate",
+    "db:migrate": "pnpm --filter @justcall/db migrate",
+    "db:seed": "pnpm --filter @justcall/db seed",
+    "db:studio": "pnpm --filter @justcall/db studio",
+    "admin:create": "pnpm --filter @justcall/web admin:create",
+    "doctor": "pnpm --filter @justcall/voice doctor",
+    "eval": "pnpm --filter @justcall/core eval"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "prettier": "^3.9.9",
+    "typescript": "5.9.3"
+  }
+}
