@@ -14,6 +14,8 @@ const nextConfig: NextConfig = {
   // PDF generation reads font metrics from disk – keep these packages unbundled.
   serverExternalPackages: ["pdfkit", "swissqrbill", "postgres", "twilio", "nodemailer"],
   poweredByHeader: false,
+  // Menu photos for the AI import are sent through a server action.
+  experimental: { serverActions: { bodySizeLimit: "10mb" } },
   agentRules: false,
   async headers() {
     return [

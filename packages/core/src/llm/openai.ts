@@ -20,6 +20,8 @@ export type OpenAiLlmOptions = {
   /** For reasoning models (gpt-5 family, o-series): "none" | "minimal" | "low" … */
   reasoningEffort?: string;
   timeoutMs?: number;
+  /** Custom fetch (tests, proxies). */
+  fetch?: typeof fetch;
 };
 
 const REASONING_MODEL = /^(o\d|gpt-5|gpt-6)/;
@@ -41,6 +43,7 @@ export class OpenAiLlm implements LlmClient {
       baseURL: options.baseURL,
       timeout: options.timeoutMs ?? 20_000,
       maxRetries: 1,
+      fetch: options.fetch,
     });
   }
 
@@ -158,6 +161,14 @@ export class OpenAiLlm implements LlmClient {
 
 function unsupportedParam(err: unknown): string | null {
   if (!(err instanceof OpenAI.APIError) || err.status !== 400) return null;
+  const known = [
+    "reasoning_effort",
+    "temperature",
+    "parallel_tool_calls",
+    "prompt_cache_key",
+    "max_completion_tokens",
+  ];
+  if (err.param && known.includes(err.param)) return err.param;
   const msg = `${err.message} ${JSON.stringify((err as { error?: unknown }).error ?? "")}`;
   for (const p of [
     "reasoning_effort",

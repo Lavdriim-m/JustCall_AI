@@ -18,6 +18,8 @@ export type AnthropicLlmOptions = {
   apiKey: string;
   model: string;
   timeoutMs?: number;
+  /** Custom fetch (tests, proxies). */
+  fetch?: typeof fetch;
 };
 
 /** Anthropic Messages API adapter (Claude) with prompt caching and streaming text. */
@@ -32,6 +34,7 @@ export class AnthropicLlm implements LlmClient {
       apiKey: options.apiKey,
       timeout: options.timeoutMs ?? 20_000,
       maxRetries: 1,
+      fetch: options.fetch,
     });
   }
 
@@ -87,7 +90,28 @@ export class AnthropicLlm implements LlmClient {
     return out;
   }
 
+  /** Set when the model rejected `temperature` (some newer models fix sampling parameters). */
+  private omitTemperature = false;
+
   async complete(request: LlmRequest): Promise<LlmResponse> {
+    try {
+      return await this.run(request);
+    } catch (err) {
+      if (
+        !this.omitTemperature &&
+        err instanceof LlmError &&
+        err.cause instanceof Anthropic.APIError &&
+        err.cause.status === 400 &&
+        /temperature/i.test(err.message)
+      ) {
+        this.omitTemperature = true;
+        return this.run(request);
+      }
+      throw err;
+    }
+  }
+
+  private async run(request: LlmRequest): Promise<LlmResponse> {
     const tools: Tool[] = request.tools.map((t) => ({
       name: t.name,
       description: t.description,
@@ -98,7 +122,7 @@ export class AnthropicLlm implements LlmClient {
         {
           model: this.model,
           max_tokens: request.maxTokens ?? 400,
-          temperature: request.temperature,
+          temperature: this.omitTemperature ? undefined : request.temperature,
           system: [{ type: "text", text: request.system, cache_control: { type: "ephemeral" } }],
           tools,
           messages: this.toMessages(request),
