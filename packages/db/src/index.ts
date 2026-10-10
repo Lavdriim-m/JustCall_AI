@@ -9,6 +9,8 @@ export {
   gt,
   gte,
   ilike,
+  like,
+  type SQL,
   inArray,
   isNotNull,
   isNull,

@@ -18,17 +18,22 @@ type SimToken = { restaurantId: string; userId: string; purpose: string };
 export function registerSimulatorRoutes(app: FastifyInstance, ctx: AppContext) {
   const { config, db, logger } = ctx;
 
-  app.get("/sim", { websocket: true }, async (socket: WebSocket, req) => {
+  app.get("/sim", { websocket: true }, (socket: WebSocket, req) => {
     const token = (req.query as Record<string, string>).token ?? "";
-    const payload = await verifyToken<SimToken>(
+    // Listeners must be attached synchronously, otherwise the client's first message can be lost.
+    const verified = verifyToken<SimToken>(
       token,
       config.INTERNAL_API_SECRET || "dev-secret-change-me-please",
-    );
-    if (!payload || payload.purpose !== "simulator") {
-      socket.send(JSON.stringify({ type: "error", message: "Ungültiges oder abgelaufenes Token" }));
-      socket.close();
-      return;
-    }
+    ).then((p) => {
+      if (!p || p.purpose !== "simulator") {
+        socket.send(
+          JSON.stringify({ type: "error", message: "Ungültiges oder abgelaufenes Token" }),
+        );
+        socket.close();
+        return null;
+      }
+      return p;
+    });
     let session: CallSession | null = null;
     let callId: string | null = null;
     const send = (data: Record<string, unknown>) => {
@@ -59,6 +64,7 @@ export function registerSimulatorRoutes(app: FastifyInstance, ctx: AppContext) {
       },
     };
 
+    let starting = false;
     socket.on("message", async (raw: Buffer) => {
       let msg: Record<string, any>;
       try {
@@ -66,8 +72,11 @@ export function registerSimulatorRoutes(app: FastifyInstance, ctx: AppContext) {
       } catch {
         return;
       }
+      const payload = await verified;
+      if (!payload) return;
       try {
-        if (msg.type === "start" && !session) {
+        if (msg.type === "start" && !session && !starting) {
+          starting = true;
           const bundle = await ctx.restaurants.get(payload.restaurantId);
           if (!bundle) {
             send({ type: "error", message: "Restaurant nicht gefunden" });
