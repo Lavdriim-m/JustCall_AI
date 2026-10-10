@@ -17,7 +17,8 @@ export function createOpenAiSttSession(
     timeout: 15_000,
     maxRetries: 1,
   });
-  const vad = new EnergyVad({ endSilenceMs: opts.endSilenceMs ?? 650 });
+  // 300 ms of speech before reacting avoids barge-ins on short background noises.
+  const vad = new EnergyVad({ endSilenceMs: opts.endSilenceMs ?? 650, minSpeechMs: 300 });
   const language = opts.language.split("-")[0] ?? "de";
   const prompt =
     `Telefonische Bestellung in einem Schweizer Restaurant, Schweizerdeutsch. ${opts.phrases.slice(0, 80).join(", ")}`.slice(

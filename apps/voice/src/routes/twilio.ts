@@ -1,5 +1,8 @@
 import {
+  defaultGreeting,
+  getOpenState,
   isAnonymousCaller,
+  normalizeForSpeech,
   signToken,
   toE164,
   verifyToken,
@@ -107,6 +110,9 @@ export function registerTwilioRoutes(app: FastifyInstance, ctx: AppContext) {
       });
       return xml(`<Dial timeout="25">${esc(restaurant.transferPhone)}</Dial>`);
     }
+
+    // Synthesise the greeting while Twilio opens the media stream (cached for the session).
+    void prewarmGreeting(ctx, restaurant.id);
 
     const token = await signToken(
       { callId: call.id, sid: body.CallSid },
@@ -339,4 +345,17 @@ async function fallbackForward(ctx: AppContext, callId: string | null, callSid: 
         `${say("Entschuldigung, ein technisches Problem ist aufgetreten. Bitte rufen Sie später nochmals an.")}<Hangup/>`,
       );
   await requireTwilio().calls(callSid).update({ twiml });
+}
+
+async function prewarmGreeting(ctx: AppContext, restaurantId: string) {
+  try {
+    const bundle = await ctx.restaurants.get(restaurantId);
+    if (!bundle) return;
+    const p = bundle.profile;
+    if (!getOpenState(new Date(), p.openingHours, p.hoursExceptions, p.timezone).isOpen) return;
+    const tts = getTtsProvider(ctx.config, bundle.row.ttsProvider);
+    await tts.synthesize(normalizeForSpeech(defaultGreeting(p)), { voice: bundle.row.ttsVoice });
+  } catch {
+    // Best effort – the session synthesises it again if needed.
+  }
 }

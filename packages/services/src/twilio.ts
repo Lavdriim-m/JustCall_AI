@@ -80,12 +80,16 @@ export async function configureNumberWebhooks(
   numberSid: string,
   voiceBaseUrl: string,
   env: Env = process.env,
+  /** Web app URL that forwards callers to the restaurant if the voice server is unreachable. */
+  fallbackUrl?: string | null,
 ) {
   const client = requireTwilio(env);
   const urls = voiceWebhookUrls(voiceBaseUrl);
   return client.incomingPhoneNumbers(numberSid).update({
     voiceUrl: urls.voiceUrl,
     voiceMethod: "POST",
+    voiceFallbackUrl: fallbackUrl ?? undefined,
+    voiceFallbackMethod: fallbackUrl ? "POST" : undefined,
     statusCallback: urls.statusCallback,
     statusCallbackMethod: "POST",
   });
@@ -126,6 +130,7 @@ export async function purchaseNumber(
   phoneNumber: string,
   voiceBaseUrl: string,
   env: Env = process.env,
+  fallbackUrl?: string | null,
 ) {
   const client = requireTwilio(env);
   const urls = voiceWebhookUrls(voiceBaseUrl);
@@ -133,6 +138,8 @@ export async function purchaseNumber(
     phoneNumber,
     voiceUrl: urls.voiceUrl,
     voiceMethod: "POST",
+    voiceFallbackUrl: fallbackUrl ?? undefined,
+    voiceFallbackMethod: fallbackUrl ? "POST" : undefined,
     statusCallback: urls.statusCallback,
     statusCallbackMethod: "POST",
     bundleSid: env.TWILIO_CH_BUNDLE_SID || undefined,

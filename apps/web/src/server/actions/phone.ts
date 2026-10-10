@@ -16,6 +16,11 @@ import { db } from "../db";
 import { requireAdmin } from "../session";
 import { fail, ok, type ActionResult } from "./helpers";
 
+/** Twilio calls this web app URL when the voice server is unreachable (forwards to the restaurant). */
+function fallbackUrl() {
+  return env.appUrl.startsWith("https://") ? `${env.appUrl}/api/twilio/fallback` : null;
+}
+
 function refresh(restaurantId?: string | null) {
   revalidatePath("/admin/numbers");
   if (restaurantId) revalidatePath(`/admin/restaurants/${restaurantId}`, "layout");
@@ -57,7 +62,7 @@ export async function connectNumber(
   let warning: string | null = null;
   if (providerSid && isTwilioConfigured()) {
     try {
-      await configureNumberWebhooks(providerSid, env.voiceUrl);
+      await configureNumberWebhooks(providerSid, env.voiceUrl, process.env, fallbackUrl());
       webhookConfiguredAt = new Date();
     } catch (err) {
       warning = `Saved, but configuring Twilio failed: ${err instanceof Error ? err.message : String(err)}`;
@@ -114,7 +119,7 @@ export async function reconfigureWebhooks(numberId: string): Promise<ActionResul
   const [n] = await db.select().from(phoneNumbers).where(eq(phoneNumbers.id, numberId)).limit(1);
   if (!n?.providerSid) return fail("This number has no Twilio SID.");
   try {
-    await configureNumberWebhooks(n.providerSid, env.voiceUrl);
+    await configureNumberWebhooks(n.providerSid, env.voiceUrl, process.env, fallbackUrl());
     await db
       .update(phoneNumbers)
       .set({ webhookConfiguredAt: new Date() })
@@ -152,7 +157,7 @@ export async function buyNumberAction(
   const admin = await requireAdmin();
   if (!isTwilioConfigured()) return fail("Twilio is not configured.");
   try {
-    const bought = await purchaseNumber(phoneNumber, env.voiceUrl);
+    const bought = await purchaseNumber(phoneNumber, env.voiceUrl, process.env, fallbackUrl());
     await db
       .insert(phoneNumbers)
       .values({

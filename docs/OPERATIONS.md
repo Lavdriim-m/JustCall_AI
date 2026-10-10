@@ -94,12 +94,10 @@ audio seconds and spoken characters per call for exact accounting.
 - Supabase Pro: daily backups + point-in-time recovery. Self-hosted: nightly `pg_dump`, keep 30 days
   off-site.
 - Everything else is stateless – redeploy from GitHub.
-- If the voice server is down, Twilio returns an error to callers. Configure a **fallback URL** on each
-  Twilio number (Console → number → _Primary handler fails_) with TwiML that dials the restaurant, e.g. a
-  TwiML Bin:
-  ```xml
-  <Response><Dial>+41791112233</Dial></Response>
-  ```
+- If the voice server is down or does not answer, Twilio automatically calls the **fallback URL**
+  `APP_URL/api/twilio/fallback` (set on every number JustCall connects, requires an `https://`
+  `APP_URL`). The web app – hosted separately – forwards the caller straight to the restaurant's transfer
+  number and records the incident as a call with outcome _error_. No call is lost.
 
 ## Support playbook
 

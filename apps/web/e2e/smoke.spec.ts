@@ -33,7 +33,9 @@ test("admin can onboard, test-call and see the order on the restaurant board", a
   await shot(page, "02-overview");
 
   await page.getByRole("link", { name: "Restaurants", exact: true }).click();
-  await page.getByRole("link", { name: "Pizzeria Bella Vista" }).first().click();
+  await page.waitForURL(/\/admin\/restaurants$/);
+  await page.getByRole("main").getByRole("link", { name: "Pizzeria Bella Vista" }).first().click();
+  await page.waitForURL(/\/admin\/restaurants\/[0-9a-f-]{36}$/);
   await expect(page.getByText("Go-live checklist")).toBeVisible();
   await shot(page, "03-restaurant-overview");
 
