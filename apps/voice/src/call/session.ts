@@ -55,7 +55,12 @@ type Turn = {
   text: string[];
   done: Promise<void>;
 };
-type SpeechItem = { text: string; audio: Promise<Buffer | null>; turn: Turn | null };
+type SpeechItem = {
+  text: string;
+  audio: Promise<Buffer | null>;
+  turn: Turn | null;
+  generation: number;
+};
 
 /**
  * One live phone call: streams caller audio into speech recognition, runs the conversation engine
@@ -80,6 +85,8 @@ export class CallSession {
   private playbackUntil = 0;
   private playbackWaiters: (() => void)[] = [];
   private ttsFailures = 0;
+  /** Incremented on barge-in; queued audio from an older generation is dropped. */
+  private speechGeneration = 0;
 
   private ending = false;
   private ended = false;
@@ -406,7 +413,7 @@ export class CallSession {
         return null;
       },
     );
-    this.speech.push({ text, audio, turn });
+    this.speech.push({ text, audio, turn, generation: this.speechGeneration });
     void this.playLoop();
   }
 
@@ -417,7 +424,8 @@ export class CallSession {
       while (this.speech.length) {
         const item = this.speech.shift()!;
         const audio = await item.audio;
-        if (!audio || item.turn?.muted || this.ended) continue;
+        if (!audio || item.turn?.muted || item.generation !== this.speechGeneration || this.ended)
+          continue;
         this.stopSilenceTimer();
         // Send in 100 ms chunks.
         for (let i = 0; i < audio.length; i += 800)
@@ -456,6 +464,7 @@ export class CallSession {
     if (!this.isSpeaking()) return;
     this.o.logger.debug("barge-in");
     this.o.transport.clearAudio();
+    this.speechGeneration += 1;
     for (const item of this.speech) if (item.turn) item.turn.muted = true;
     this.speech = [];
     this.marks.clear();

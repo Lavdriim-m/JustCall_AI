@@ -57,7 +57,11 @@ async function waitFor<T>(fn: () => T | Promise<T>, timeoutMs = 8000): Promise<N
 }
 
 /** Simulates Twilio: places a call, opens the media stream and acknowledges played audio. */
-async function placeCall(to: string, from = "+41791234567") {
+async function placeCall(
+  to: string,
+  from = "+41791234567",
+  opts: { ackMarks?: boolean; startOnly?: boolean } = {},
+) {
   const callSid = `CA${Math.random().toString(16).slice(2, 12)}`;
   const res = await fetch(`${baseUrl}/twilio/voice`, {
     method: "POST",
@@ -75,7 +79,7 @@ async function placeCall(to: string, from = "+41791234567") {
   ws.on("message", (raw) => {
     const msg = JSON.parse(raw.toString());
     received.push(msg);
-    if (msg.event === "mark") {
+    if (msg.event === "mark" && opts.ackMarks !== false) {
       pendingMarks += 1;
       // Acknowledge playback like Twilio does.
       setTimeout(() => {
@@ -98,6 +102,10 @@ async function placeCall(to: string, from = "+41791234567") {
       },
     }),
   );
+  if (opts.startOnly) {
+    ws.send(JSON.stringify({ event: "stop", streamSid: "MZ1" }));
+    return { twiml, callSid, callId, ws, received };
+  }
   const marksSeen = () => received.filter((m) => m.event === "mark").length;
   const say = async (text: string) => {
     const before = marksSeen();
@@ -230,5 +238,40 @@ describe("phone call over Twilio media streams", () => {
       Array.from({ length: 20 }, (_, i) => 101 + i),
     );
     await Promise.all(callers.map((c) => c.stop!()));
+  });
+
+  it("barge-in: caller speech stops the assistant's playback", async () => {
+    await createTestRestaurant("+41445550020");
+    const call = await placeCall("+41445550020", "+41791234567", { ackMarks: false });
+    await waitFor(() => call.received!.some((m) => m.event === "mark"));
+    // Greeting is still "playing" (no mark acknowledged) – caller talks over it.
+    call.ws!.send(
+      JSON.stringify({
+        event: "media",
+        streamSid: "MZ1",
+        media: {
+          track: "inbound",
+          payload: encodeMockUtterance("Zwei Margherita bitte").toString("base64"),
+        },
+      }),
+    );
+    await waitFor(() => call.received!.some((m) => m.event === "clear"));
+    await waitFor(async () => {
+      const events = await db.select().from(callEvents).where(eq(callEvents.callId, call.callId!));
+      return events.some((e) => e.kind === "user" && e.content === "Zwei Margherita bitte");
+    });
+    call.ws!.send(JSON.stringify({ event: "stop", streamSid: "MZ1" }));
+    call.ws!.close();
+  });
+
+  it("finalises the call when the caller hangs up while the session is starting", async () => {
+    await createTestRestaurant("+41445550021");
+    const call = await placeCall("+41445550021", "+41791234567", { startOnly: true });
+    const [row] = await waitFor(async () => {
+      const rows = await db.select().from(calls).where(eq(calls.id, call.callId!));
+      return rows[0]?.endedAt ? rows : null;
+    });
+    expect(row!.outcome).toBe("no_order");
+    call.ws!.close();
   });
 });

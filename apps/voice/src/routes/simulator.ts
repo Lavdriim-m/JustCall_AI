@@ -136,6 +136,7 @@ export function registerSimulatorRoutes(app: FastifyInstance, ctx: AppContext) {
           ctx.registry.add(callId, session);
           send({ type: "ready", callId, llm: `${llm.provider}:${llm.model}`, mode });
           await session.start();
+          if (socket.readyState !== socket.OPEN) await session.onStop("socket_closed");
         } else if (msg.type === "text") {
           session?.onText(String(msg.text ?? ""));
         } else if (msg.event === "media" && msg.media?.payload) {

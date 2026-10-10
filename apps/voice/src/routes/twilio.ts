@@ -179,6 +179,7 @@ export function registerTwilioRoutes(app: FastifyInstance, ctx: AppContext) {
   /** Twilio Media Stream (bidirectional audio). */
   app.get("/twilio/stream", { websocket: true }, (socket: WebSocket) => {
     let session: CallSession | null = null;
+    let stopped = false;
     let streamSid: string | null = null;
     let callSid: string | null = null;
     let callId: string | null = null;
@@ -249,6 +250,11 @@ export function registerTwilioRoutes(app: FastifyInstance, ctx: AppContext) {
           try {
             session = await createPhoneSession(ctx, callId, transport);
             ctx.registry.add(callId, session);
+            // The caller may have hung up while the session was starting.
+            if (stopped) {
+              await session.onStop("caller_hangup_during_start");
+              ctx.registry.remove(callId);
+            }
           } catch (err) {
             logger.error({ err, callId }, "could not start call session");
             if (callId)
@@ -273,6 +279,7 @@ export function registerTwilioRoutes(app: FastifyInstance, ctx: AppContext) {
           if (msg.mark?.name) session?.onMark(msg.mark.name);
           break;
         case "stop":
+          stopped = true;
           await session?.onStop("stream_stopped");
           if (callId) ctx.registry.remove(callId);
           break;
@@ -280,6 +287,7 @@ export function registerTwilioRoutes(app: FastifyInstance, ctx: AppContext) {
     });
 
     socket.on("close", async () => {
+      stopped = true;
       await session?.onStop("socket_closed");
       if (callId) ctx.registry.remove(callId);
     });
